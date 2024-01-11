@@ -1,6 +1,26 @@
 # judo-footage-analysis
 
-## footage link
+## quickstart
+
+Checkout the repo, and the submodules too:
+
+```bash
+git checkout {repo}
+git submodule update --init --recursive
+```
+
+Install the relevant tools:
+
+- ffmpeg
+- b2-tools
+
+For detectron, read through this link:
+
+- https://detectron2.readthedocs.io/en/latest/tutorials/install.html
+
+Install the vendored version, which links to a version of detectron patches with quality-of-life improvements.
+
+## footage links
 
 ### 2023 President's Cup
 
