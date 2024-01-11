@@ -73,3 +73,16 @@ yt-dlp \
     https://www.youtube.com/watch?v=pE_mDPF0gwI \
     https://www.youtube.com/watch?v=OwhJQFx27YM
 ```
+
+Upload the videos.
+Install [b2] for uploading the files into a bucket:
+
+```bash
+sudo curl -L https://github.com/Backblaze/B2_Command_Line_Tool/releases/latest/download/b2-linux -o /usr/local/bin/b2
+sudo chmod a+rx /usr/local/bin/b2
+```
+
+```bash
+b2 authorize-account
+b2 sync ./ b2://acm-judo/data/yt-dlp
+```
