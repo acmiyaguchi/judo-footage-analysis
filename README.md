@@ -32,7 +32,7 @@ Install the vendored version, which links to a version of detectron patches with
 6. https://www.youtube.com/watch?v=B38xef6cHHk
 7. https://www.youtube.com/watch?v=mDFtwQVP9GM
 8. https://www.youtube.com/watch?v=6rZvqhUaxOE
-    - The only footage without smoothcomp overlay for match statistics
+   - The only footage without smoothcomp overlay for match statistics
 9. https://www.youtube.com/watch?v=pE_mDPF0gwI
 10. https://www.youtube.com/watch?v=OwhJQFx27YM
 
