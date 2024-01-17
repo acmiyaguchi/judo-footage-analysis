@@ -6,6 +6,7 @@ from pathlib import Path
 
 import ffmpeg
 import numpy as np
+import pandas as pd
 from detectron2 import model_zoo
 from detectron2.config import get_cfg
 from detectron2.data import MetadataCatalog
@@ -100,13 +101,26 @@ class DataPickleWriter:
         if len(self.chunk) == self.chunk_size:
             self.flush()
 
+    def _chunk_to_df(self, chunk):
+        return pd.DataFrame(
+            [
+                dict(
+                    frame_index=d.frame_index,
+                    framerate=d.framerate,
+                    pred_boxes=d.instances.pred_boxes,
+                    scores=d.instances.scores,
+                    pred_classes=d.instances.pred_classes,
+                    pred_keypoints=d.instances.pred_keypoints,
+                )
+                for d in chunk
+            ]
+        )
+
     def flush(self):
         self.output_data_root.mkdir(parents=True, exist_ok=True)
         # use 4 digits for the chunk
-        with (self.output_data_root / f"chunk_{self.chunk_index:04d}.pkl").open(
-            "wb"
-        ) as fp:
-            pickle.dump(self.chunk, fp)
+        chunk_name = f"chunk_{self.chunk_index:04d}.pkl.zstd"
+        self._chunk_to_df(self.chunk).to_pickle(self.output_data_root / chunk_name)
         self.chunk_index += 1
         self.chunk = []
 
@@ -115,7 +129,6 @@ class DataPickleWriter:
 class InferenceData:
     frame_index: int
     framerate: int
-    image: np.ndarray
     instances: object
 
 
@@ -163,7 +176,6 @@ def main():
                 InferenceData(
                     frame_index=index,
                     framerate=args.framerate,
-                    image=in_frame,
                     instances=instances,
                 )
             )
