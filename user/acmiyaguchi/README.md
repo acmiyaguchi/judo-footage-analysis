@@ -22,6 +22,16 @@ time ./user/acmiyaguchi/run_detectron.py \
 real    29m41.595s
 user    42m50.767s
 sys     0m18.730s
+
+time ./user/acmiyaguchi/run_detectron.py \
+    --input data/interim/mat-3-trunc.mp4 \
+    --output data/interim/mat-3-viz.mp4 \
+    --output-data-root data/interim/mat-3-data \
+    --framerate 10
+
+real    35m40.833s
+user    49m28.443s
+sys     0m22.649s
 ```
 
 ```bash
