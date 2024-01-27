@@ -2,6 +2,8 @@
 
 This is a directory for me to throw in random scripts or docs that may not belong elsewhere related to analysis.
 
+## detectron demo on truncated videos
+
 ```bash
 time ./user/acmiyaguchi/run_detectron.py \
     --input data/interim/mat-2-trunc.mp4 \
@@ -36,4 +38,27 @@ sys     0m22.649s
 
 ```bash
 python3 -m b2 sync data/interim b2://acm-judo/data/analysis/interim
+```
+
+## extraction of frames
+
+```bash
+# start up the luigi daemon
+luigid
+
+# run the extraction process as a test
+python -m workflow.sample_frames \
+    --input-root-path /mnt/students/video_judo \
+    --output-root-path /cs-share/pradalier/tmp/judo/frames \
+    --duration 20 \
+    --batch-size 5 \
+    --num-workers 4
+
+# run the extraction process for real
+time python -m workflow.sample_frames \
+    --input-root-path /mnt/students/video_judo \
+    --output-root-path /cs-share/pradalier/tmp/judo/frames \
+    --duration 3600 \
+    --batch-size 600 \
+    --num-workers 12
 ```
