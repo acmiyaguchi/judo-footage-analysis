@@ -124,3 +124,32 @@ time python -m workflow.sample_frames \
     --batch-size 600 \
     --num-workers 12
 ```
+
+### configuring label studio
+
+Follow the instructions from [label studio](https://labelstud.io/guide/install).
+We are configuring this on a lab computer, so we implicitly assume network access to the machine.
+
+We note database issues on the NFS home drive when running label-studio:
+
+```bash
+  File "/home/GTL/amiyaguc/.local/lib/python3.10/site-packages/django/db/migrations/executor.py", line 91, in migrate
+    self.recorder.ensure_schema()
+  File "/home/GTL/amiyaguc/.local/lib/python3.10/site-packages/django/db/migrations/recorder.py", line 70, in ensure_schema
+    raise MigrationSchemaMissing("Unable to create the django_migrations table (%s)" % exc)
+django.db.migrations.exceptions.MigrationSchemaMissing: Unable to create the django_migrations table (database is locked)
+```
+
+We have access to the local disk on gtlpc129 on `/data`.
+
+```bash
+label-studio --data-dir /data/judo-label
+./scripts/serve_local_files.sh \
+    /cs-share/pradalier/tmp/judo/frames \
+    '*.jpg' \
+    /cs-share/pradalier/tmp/judo/frame_files.txt
+```
+
+Here's some handy documentation:
+
+- Keyboard shortcuts: <https://labelstud.io/guide/labeling.html#Use-keyboard-shortcuts>
