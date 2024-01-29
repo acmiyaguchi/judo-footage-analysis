@@ -16,27 +16,33 @@ Install the relevant tools:
 
 For detectron, read through this link:
 
-- https://detectron2.readthedocs.io/en/latest/tutorials/install.html
+- <https://detectron2.readthedocs.io/en/latest/tutorials/install.html>
 
 Install the vendored version, which links to a version of detectron patches with quality-of-life improvements.
+
+```bash
+pip install -e vendor/detectron2
+```
 
 ## footage links
 
 ### 2023 President's Cup
 
-1. https://www.youtube.com/watch?v=uPhXtW_f_AE
-2. https://www.youtube.com/watch?v=Nh_cb1RNV9o
-3. https://www.youtube.com/watch?v=95paesJw7pk
-4. https://www.youtube.com/watch?v=xVDw2bhFXgk
-5. https://www.youtube.com/watch?v=2hYzoJ8HSkk
-6. https://www.youtube.com/watch?v=B38xef6cHHk
-7. https://www.youtube.com/watch?v=mDFtwQVP9GM
-8. https://www.youtube.com/watch?v=6rZvqhUaxOE
+1. <https://www.youtube.com/watch?v=uPhXtW_f_AE>
+2. <https://www.youtube.com/watch?v=Nh_cb1RNV9o>
+3. <https://www.youtube.com/watch?v=95paesJw7pk>
+4. <https://www.youtube.com/watch?v=xVDw2bhFXgk>
+5. <https://www.youtube.com/watch?v=2hYzoJ8HSkk>
+6. <https://www.youtube.com/watch?v=B38xef6cHHk>
+7. <https://www.youtube.com/watch?v=mDFtwQVP9GM>
+8. <https://www.youtube.com/watch?v=6rZvqhUaxOE>
    - The only footage without smoothcomp overlay for match statistics
-9. https://www.youtube.com/watch?v=pE_mDPF0gwI
-10. https://www.youtube.com/watch?v=OwhJQFx27YM
+9. <https://www.youtube.com/watch?v=pE_mDPF0gwI>
+10. <https://www.youtube.com/watch?v=OwhJQFx27YM>
 
 ## notes
+
+### downloading stream data
 
 I create a n2d instance with local-ssd (375gb) to download the streamed videos and upload them into a cloud bucket.
 I focus on a subset of videos, in particular mat 1 and mat 8.
@@ -85,4 +91,36 @@ sudo chmod a+rx /usr/local/bin/b2
 ```bash
 b2 authorize-account
 b2 sync ./ b2://acm-judo/data/yt-dlp
+```
+
+### creation of keypoint annotated videos
+
+See [user/acmiyaguchi/README.md](user/acmiyaguchi/README.md).
+Here are a few videos that have been annotated with keypoints at 10hz using detectron2:
+
+- <https://www.youtube.com/playlist?list=PLaBtWXB-9VkbHSHyyY-fjAVD7dO1P2PdO>
+
+### extraction of frames
+
+We extract frames from all the downloaded videos to train a model for full frame classification.
+
+```bash
+# start up the luigi daemon
+luigid
+
+# run the extraction process as a test
+python -m workflow.sample_frames \
+    --input-root-path /mnt/students/video_judo \
+    --output-root-path /cs-share/pradalier/tmp/judo/frames \
+    --duration 20 \
+    --batch-size 5 \
+    --num-workers 4
+
+# run the extraction process for real
+time python -m workflow.sample_frames \
+    --input-root-path /mnt/students/video_judo \
+    --output-root-path /cs-share/pradalier/tmp/judo/frames \
+    --duration 3600 \
+    --batch-size 600 \
+    --num-workers 12
 ```
