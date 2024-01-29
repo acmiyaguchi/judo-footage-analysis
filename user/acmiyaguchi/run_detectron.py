@@ -32,17 +32,17 @@ def parse_args():
     return parser.parse_args()
 
 
-def get_detectron_model(args):
-    """Initialize the detectron2 predictor."""
-    cfg = get_cfg()
-    # disable cuda at the moment
-    cfg.MODEL.DEVICE = args.model_device
-    cfg.merge_from_file(model_zoo.get_config_file(args.config_file))
-    cfg.MODEL.WEIGHTS = model_zoo.get_checkpoint_url(args.config_file)
-    # only keep the top 5 instances
-    cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = args.score_threshold
-    model = DefaultPredictor(cfg)
-    return model, cfg
+# def get_detectron_model(args):
+#     """Initialize the detectron2 predictor."""
+#     cfg = get_cfg()
+#     # disable cuda at the moment
+#     cfg.MODEL.DEVICE = args.model_device
+#     cfg.merge_from_file(model_zoo.get_config_file(args.config_file))
+#     cfg.MODEL.WEIGHTS = model_zoo.get_checkpoint_url(args.config_file)
+#     # only keep the top 5 instances
+#     cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = args.score_threshold
+#     model = DefaultPredictor(cfg)
+#     return model, cfg
 
 
 def probe_video_dim(input):
@@ -160,13 +160,14 @@ def main():
 
         in_frame = np.frombuffer(in_bytes, np.uint8).reshape([height, width, 3])
         prediction = model(in_frame)
-        instances = prediction["instances"].to("cpu")
+        instances = prediction["instances"].to("gpu")
         # now write out an image to test
         v = Visualizer(
             in_frame[:, :, ::-1],
             metadata=MetadataCatalog.get(cfg.DATASETS.TRAIN[0]),
             scale=1,
         )
+        
         out_frame = v.draw_instance_predictions(instances)
         out_stream.stdin.write(
             out_frame.get_image()[:, :, ::-1].astype(np.uint8).tobytes()
