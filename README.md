@@ -153,3 +153,11 @@ label-studio --data-dir /data/judo-label
 Here's some handy documentation:
 
 - Keyboard shortcuts: <https://labelstud.io/guide/labeling.html#Use-keyboard-shortcuts>
+
+Now we can ssh ports 8080 and 8081 so we can access this from any machine with intranet connectivity:
+
+```bash
+HOST=gtlpc129.georgiatech-metz.fr
+USER=amiyaguc
+ssh -L 8080:$HOST:8080 -L 8081:$HOST:8081 $USER@$HOST
+```
