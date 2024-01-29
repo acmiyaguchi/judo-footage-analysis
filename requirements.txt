@@ -1,5 +1,6 @@
--e vendor/detectron2
+# -e vendor/detectron2
 opencv-python
 ffmpeg-python
 tqdm
 pandas
+luigi

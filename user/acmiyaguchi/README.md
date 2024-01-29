@@ -2,6 +2,8 @@
 
 This is a directory for me to throw in random scripts or docs that may not belong elsewhere related to analysis.
 
+## detectron demo on truncated videos
+
 ```bash
 time ./user/acmiyaguchi/run_detectron.py \
     --input data/interim/mat-2-trunc.mp4 \
