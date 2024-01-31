@@ -143,10 +143,13 @@ django.db.migrations.exceptions.MigrationSchemaMissing: Unable to create the dja
 We have access to the local disk on gtlpc129 on `/data`.
 
 ```bash
-label-studio --data-dir /data/judo-label
+label-studio \
+    --data-dir /data/judo-label \
+    --port 8081
+
 ./scripts/serve_local_files.sh \
-    /cs-share/pradalier/tmp/judo/frames \
-    '*.jpg' \
+    /cs-share/pradalier/tmp/judo \
+    '*/frames/*.jpg' \
     /cs-share/pradalier/tmp/judo/frame_files.txt
 ```
 
