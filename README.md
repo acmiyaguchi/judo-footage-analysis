@@ -157,10 +157,16 @@ Here's some handy documentation:
 
 - Keyboard shortcuts: <https://labelstud.io/guide/labeling.html#Use-keyboard-shortcuts>
 
-Now we can ssh ports 8080 and 8081 so we can access this from any machine with intranet connectivity:
+Now we can ssh ports 8080 so we can access this from any machine with intranet connectivity:
 
 ```bash
-HOST=gtlpc129.georgiatech-metz.fr
+HOST=
 USER=amiyaguc
-ssh -L 8080:$HOST:8080 -L 8081:$HOST:8081 $USER@$HOST
+ssh -L 8080:localhost:8080 $USER@gtlpc129.georgiatech-metz.fr
+```
+
+If you're already on a gtlpc, this simplifies down to:
+
+```bash
+ssh -L 8080:localhost:8080 gtlpc129
 ```

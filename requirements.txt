@@ -4,3 +4,7 @@ ffmpeg-python
 tqdm
 pandas
 luigi
+
+# for active learning loop
+label-studio-ml>=1.0.8
+ultralytics
