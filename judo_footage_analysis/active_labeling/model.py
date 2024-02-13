@@ -1,15 +1,18 @@
 from label_studio_ml.model import LabelStudioMLBase
-import requests, os
+import requests
 from ultralytics import YOLO
 from PIL import Image
 from io import BytesIO
 
-LS_URL = os.environ["LABEL_STUDIO_BASEURL"]
-LS_API_TOKEN = os.environ["LABEL_STUDIO_API_TOKEN"]
-
 
 class YOLOv8Model(LabelStudioMLBase):
-    def __init__(self, **kwargs):
+    def __init__(
+        self,
+        base_url="http://localhost:8080",
+        api_token="",
+        model_name="yolov8n.pt",
+        **kwargs,
+    ):
         # Call base class constructor
         super(YOLOv8Model, self).__init__(**kwargs)
 
@@ -17,7 +20,9 @@ class YOLOv8Model(LabelStudioMLBase):
         self.from_name = from_name
         self.to_name = schema["to_name"][0]
         self.labels = ["Edible", "Inedible", "Visual defects"]
-        self.model = YOLO("yolov8n.pt")
+        self.model = YOLO(model_name)
+        self.base_url = base_url
+        self.api_token = api_token
 
     def predict(self, tasks, **kwargs):
         """This is where inference happens: model returns
@@ -28,10 +33,12 @@ class YOLOv8Model(LabelStudioMLBase):
         predictions = []
         score = 0
 
-        header = {"Authorization": "Token " + LS_API_TOKEN}
+        header = {"Authorization": f"Token {self.api_token}"}
         image = Image.open(
             BytesIO(
-                requests.get(LS_URL + task["data"]["image"], headers=header).content
+                requests.get(
+                    self.base_url + task["data"]["image"], headers=header
+                ).content
             )
         )
         original_width, original_height = image.size
@@ -69,6 +76,7 @@ class YOLOv8Model(LabelStudioMLBase):
             {
                 "result": predictions,
                 "score": score / (i + 1),
-                "model_version": "v8n",  # all predictions will be differentiated by model version
+                # all predictions will be differentiated by model version
+                "model_version": "v8n",
             }
         ]
