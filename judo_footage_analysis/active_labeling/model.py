@@ -16,10 +16,9 @@ class YOLOv8Model(LabelStudioMLBase):
         # Call base class constructor
         super(YOLOv8Model, self).__init__(**kwargs)
 
-        from_name, schema = list(self.parsed_label_config.items())[0]
-        self.from_name = from_name
-        self.to_name = schema["to_name"][0]
-        self.labels = ["Edible", "Inedible", "Visual defects"]
+        self.from_name = "foo"
+        self.to_name = "bar"
+        self.labels = ["referee", "player"]
         self.model = YOLO(model_name)
         self.base_url = base_url
         self.api_token = api_token
@@ -35,11 +34,7 @@ class YOLOv8Model(LabelStudioMLBase):
 
         header = {"Authorization": f"Token {self.api_token}"}
         image = Image.open(
-            BytesIO(
-                requests.get(
-                    self.base_url + task["data"]["image"], headers=header
-                ).content
-            )
+            BytesIO(requests.get(task["data"]["image"], headers=header).content)
         )
         original_width, original_height = image.size
         results = self.model.predict(image)
@@ -65,7 +60,8 @@ class YOLOv8Model(LabelStudioMLBase):
                             "width": (xyxy[2] - xyxy[0]) / original_width * 100,
                             "height": (xyxy[3] - xyxy[1]) / original_height * 100,
                             "rectanglelabels": [
-                                self.labels[int(prediction.cls.item())]
+                                # self.labels[int(prediction.cls.item())]
+                                "player"
                             ],
                         },
                     }

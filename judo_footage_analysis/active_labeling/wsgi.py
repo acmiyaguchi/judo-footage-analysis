@@ -20,7 +20,7 @@ def parse_args():
     )
     parser.add_argument(
         "--model-dir",
-        default=os.path.dirname(__file__),
+        default="models",
         help="Directory where models are stored (relative to the project directory)",
     )
     parser.add_argument(
