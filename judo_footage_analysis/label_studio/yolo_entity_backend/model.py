@@ -71,11 +71,13 @@ class YOLOv8Model(LabelStudioMLBase):
                 )
                 score += prediction.conf.item()
 
-        result = {
-            "result": predictions,
-            "score": score / (i + 1),
-            # all predictions will be differentiated by model version
-            # "model_version": self.model_version,
-        }
-        print("result", result)
+        result = [
+            {
+                "result": predictions,
+                "score": score / (i + 1),
+                # all predictions will be differentiated by model version
+                # "model_version": self.model_version,
+            }
+        ]
+        # print("result", result)
         return result
