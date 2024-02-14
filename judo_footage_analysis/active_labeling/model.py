@@ -28,6 +28,7 @@ class YOLOv8Model(LabelStudioMLBase):
         """This is where inference happens: model returns
         the list of predictions based on input list of tasks
         """
+        print("tasks", tasks)
         task = tasks[0]
 
         predictions = []
@@ -74,6 +75,6 @@ class YOLOv8Model(LabelStudioMLBase):
                 "result": predictions,
                 "score": score / (i + 1),
                 # all predictions will be differentiated by model version
-                "model_version": self.model_version,
+                # "model_version": self.model_version,
             }
         ]

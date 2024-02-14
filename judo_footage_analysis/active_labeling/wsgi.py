@@ -4,7 +4,6 @@ import logging
 import logging.config
 from label_studio_ml.api import init_app
 from judo_footage_analysis.active_labeling.model import YOLOv8Model
-from functools import partial
 
 
 def parse_args():
@@ -20,7 +19,7 @@ def parse_args():
     )
     parser.add_argument(
         "--model-dir",
-        default="models",
+        default=os.environ.get("MODEL_DIR", "models"),
         help="Directory where models are stored (relative to the project directory)",
     )
     parser.add_argument(
@@ -31,13 +30,13 @@ def parse_args():
     parser.add_argument(
         "--base-url",
         type=str,
-        default="http://localhost:8080",
+        default=os.environ.get("LABEL_STUDIO_API_URL", "http://localhost:8080"),
         help="Base URL for the API",
     )
     parser.add_argument(
         "--api-token",
         type=str,
-        required=True,
+        default=os.environ.get("LABEL_STUDIO_API_TOKEN"),
         help="API token for the API",
     )
     return parser.parse_args()
@@ -57,7 +56,7 @@ def main():
         model_class=YOLOv8Model,
         base_url=args.base_url,
         api_token=args.api_token,
-        model_dir=os.environ.get("MODEL_DIR", args.model_dir),
+        model_dir=args.model_dir,
     )
     app.run(host=args.host, port=args.port, debug=args.debug)
 
