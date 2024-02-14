@@ -15,7 +15,7 @@ def parse_args():
     parser.add_argument(
         "--log-level",
         choices=["DEBUG", "INFO", "WARNING", "ERROR"],
-        default=None,
+        default="INFO",
         help="Logging level",
     )
     parser.add_argument(

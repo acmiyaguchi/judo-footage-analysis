@@ -22,6 +22,7 @@ class YOLOv8Model(LabelStudioMLBase):
         self.model = YOLO(model_name)
         self.base_url = base_url
         self.api_token = api_token
+        self.model_version = "v8n_v1"
 
     def predict(self, tasks, **kwargs):
         """This is where inference happens: model returns
@@ -73,6 +74,6 @@ class YOLOv8Model(LabelStudioMLBase):
                 "result": predictions,
                 "score": score / (i + 1),
                 # all predictions will be differentiated by model version
-                "model_version": "v8n",
+                "model_version": self.model_version,
             }
         ]

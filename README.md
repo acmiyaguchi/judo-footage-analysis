@@ -160,7 +160,6 @@ Here's some handy documentation:
 Now we can ssh ports 8080 so we can access this from any machine with intranet connectivity:
 
 ```bash
-HOST=
 USER=amiyaguc
 ssh -L 8080:localhost:8080 $USER@gtlpc129.georgiatech-metz.fr
 ```
@@ -169,4 +168,13 @@ If you're already on a gtlpc, this simplifies down to:
 
 ```bash
 ssh -L 8080:localhost:8080 gtlpc129
+```
+
+## pre-annotation and active labeling
+
+```bash
+python -m judo_footage_analysis.active_labeling.wsgi \
+    --model-dir /tmp/model \
+    --debug \
+    --api-token=...
 ```
