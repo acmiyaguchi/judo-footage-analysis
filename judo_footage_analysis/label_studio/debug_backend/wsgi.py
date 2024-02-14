@@ -3,7 +3,7 @@ import argparse
 import logging
 import logging.config
 from label_studio_ml.api import init_app
-from judo_footage_analysis.active_labeling.model import YOLOv8Model
+from .model import DebugModel
 
 
 def parse_args():
@@ -21,11 +21,6 @@ def parse_args():
         "--model-dir",
         default=os.environ.get("MODEL_DIR", "models"),
         help="Directory where models are stored (relative to the project directory)",
-    )
-    parser.add_argument(
-        "--check",
-        action="store_true",
-        help="Validate model instance before launching server",
     )
     parser.add_argument(
         "--base-url",
@@ -49,11 +44,8 @@ def main():
     if args.log_level:
         logging.root.setLevel(args.log_level)
 
-    if args.check:
-        YOLOv8Model()
-
     app = init_app(
-        model_class=YOLOv8Model,
+        model_class=DebugModel,
         base_url=args.base_url,
         api_token=args.api_token,
         model_dir=args.model_dir,

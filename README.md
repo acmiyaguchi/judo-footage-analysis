@@ -173,8 +173,10 @@ ssh -L 8080:localhost:8080 gtlpc129
 ## pre-annotation and active labeling
 
 ```bash
-python -m judo_footage_analysis.active_labeling.wsgi \
+python -m judo_footage_analysis.label_studio.yolo_entity_backend.wsgi \
     --model-dir /tmp/model \
     --debug \
     --api-token=...
 ```
+
+This debugging process sucks, so we've added a bit of testing too.

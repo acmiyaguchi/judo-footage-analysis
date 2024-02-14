@@ -1,4 +1,5 @@
 from label_studio_ml.model import LabelStudioMLBase
+from label_studio_ml.utils import get_single_tag_keys
 import requests
 from ultralytics import YOLO
 from PIL import Image
@@ -16,8 +17,9 @@ class YOLOv8Model(LabelStudioMLBase):
         # Call base class constructor
         super(YOLOv8Model, self).__init__(**kwargs)
 
-        self.from_name = "foo"
-        self.to_name = "bar"
+        self.from_name, self.to_name, self.value, self.classes = get_single_tag_keys(
+            self.parsed_label_config, "RectangleLabels", "Image"
+        )
         self.labels = ["referee", "player"]
         self.model = YOLO(model_name)
         self.base_url = base_url
@@ -28,7 +30,6 @@ class YOLOv8Model(LabelStudioMLBase):
         """This is where inference happens: model returns
         the list of predictions based on input list of tasks
         """
-        print("tasks", tasks)
         task = tasks[0]
 
         predictions = []
@@ -70,11 +71,11 @@ class YOLOv8Model(LabelStudioMLBase):
                 )
                 score += prediction.conf.item()
 
-        return [
-            {
-                "result": predictions,
-                "score": score / (i + 1),
-                # all predictions will be differentiated by model version
-                # "model_version": self.model_version,
-            }
-        ]
+        result = {
+            "result": predictions,
+            "score": score / (i + 1),
+            # all predictions will be differentiated by model version
+            # "model_version": self.model_version,
+        }
+        print("result", result)
+        return result
