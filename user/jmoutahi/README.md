@@ -1,2 +1,2 @@
 # Timer extraction
-see [here](text_extract)
+see [here](timer_extraction)
