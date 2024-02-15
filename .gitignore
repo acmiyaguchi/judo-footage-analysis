@@ -4,3 +4,6 @@ __pycache__
 .env
 *.egg-info
 *.pt
+judo_yolov5_dataset
+runs
+wandb
