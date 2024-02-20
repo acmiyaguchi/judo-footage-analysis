@@ -29,7 +29,7 @@ if __name__ == "__main__":
     print("Extracting timer...")
     print("-------------------")
 
-    parallelize_extraction(frame_folders, json_folder, roi_coordinates_timer)
+    parallelize_extraction_timer(frame_folders, json_folder, roi_coordinates_timer)
 
     print("-------------------")
     print("Extraction done!")
@@ -44,6 +44,7 @@ if __name__ == "__main__":
     output_file = "combined.json"
 
     combine_json_files(json_folder, "combined.json")
+
     print("-------------------")
     print("Combining done!")
     print("-------------------")
