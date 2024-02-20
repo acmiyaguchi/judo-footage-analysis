@@ -1,14 +1,16 @@
-import cv2
-import pytesseract
 import os
-import matplotlib.pyplot as plt
 
+import cv2
+import matplotlib.pyplot as plt
+import pytesseract
 from src.combine_jsons import *
-from src.timer_task import *
 from src.is_timer import *
+from src.timer_task import *
 
 # Set the path to the Tesseract executable
-pytesseract.pytesseract.tesseract_cmd = r'/usr/bin/tesseract'  # TODO: Change this to the Tessaract path on the system
+pytesseract.pytesseract.tesseract_cmd = (
+    r"/usr/bin/tesseract"  # TODO: Change this to the Tessaract path on the system
+)
 
 
 if __name__ == "__main__":
@@ -21,8 +23,17 @@ if __name__ == "__main__":
     roi_coordinates_timer = (660, 625, 750, 665)
 
     # Get the list of folders containing frames
-    frame_mat_folders = [os.path.join(frames_root_folder, folder) for folder in os.listdir(frames_root_folder) if os.path.isdir(os.path.join(frames_root_folder, folder))]
-    frame_folders = [os.path.join(frame_mat_folder, folder) for frame_mat_folder in frame_mat_folders for folder in os.listdir(frame_mat_folder) if os.path.isdir(os.path.join(frame_mat_folder, folder))]
+    frame_mat_folders = [
+        os.path.join(frames_root_folder, folder)
+        for folder in os.listdir(frames_root_folder)
+        if os.path.isdir(os.path.join(frames_root_folder, folder))
+    ]
+    frame_folders = [
+        os.path.join(frame_mat_folder, folder)
+        for frame_mat_folder in frame_mat_folders
+        for folder in os.listdir(frame_mat_folder)
+        if os.path.isdir(os.path.join(frame_mat_folder, folder))
+    ]
 
     # Extract the timer from the frames
     print("-------------------")
