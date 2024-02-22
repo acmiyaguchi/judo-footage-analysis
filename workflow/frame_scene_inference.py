@@ -24,8 +24,13 @@ class SceneClassificationInference(luigi.Task):
 
     def run(self):
         model = YOLO(self.checkpoint)
-        model_prediction = model(
-            self.input_path, save=False, conf=0.2, iou=0.5, verbose=False
+        model_prediction = model.predict(
+            self.input_path,
+            save=False,
+            conf=0.2,
+            iou=0.5,
+            verbose=False,
+            stream=True,
         )
 
         results = []
