@@ -6,12 +6,7 @@ import luigi
 from ultralytics import YOLO
 import pandas as pd
 import matplotlib.pyplot as plt
-
-
-def ensure_parent(path):
-    path = Path(path)
-    path.parent.mkdir(parents=True, exists_ok=True)
-    return path
+from judo_footage_analysis.utils import ensure_parent
 
 
 class SceneClassificationInference(luigi.Task):
@@ -74,8 +69,10 @@ class PlotClassificationInference(luigi.Task):
 
     def _plot(self, df, path):
         labels = df.iloc[0].labels
+        mat_id = df.iloc[0].mat
+        batch_id = df.iloc[0].batch_id
         for label in labels:
-            df_mat[label].plot(label=label, figsize=(12, 4))
+            df[label].plot(label=label, figsize=(12, 4))
         plt.gcf().set_facecolor("white")
         plt.legend()
         plt.title(f"Probabilities over time for mat {mat_id} batch {batch_id}")
