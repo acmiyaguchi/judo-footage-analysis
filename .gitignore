@@ -7,4 +7,6 @@ __pycache__
 judo_yolov5_dataset
 runs
 wandb
+tmp
 venv/
+
