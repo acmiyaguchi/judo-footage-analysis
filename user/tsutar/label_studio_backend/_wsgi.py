@@ -5,12 +5,12 @@ import os
 
 from label_studio_ml.api import init_app
 
-# from .model import YOLOv8Model
+from .model import YOLOv8Model
 
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Label studio")
-    parser.add_argument("-p", "--port", type=int, default=9191, help="Server port")
+    parser.add_argument("-p", "--port", type=int, default=9292, help="Server port")
     parser.add_argument("--host", type=str, default="0.0.0.0", help="Server host")
     parser.add_argument("-d", "--debug", action="store_true", help="Switch debug mode")
     parser.add_argument(
@@ -49,14 +49,14 @@ def main():
 
     logging.basicConfig()
 
-    # if args.log_level:
-    #     logging.root.setLevel(args.log_level)
+    if args.log_level:
+        logging.root.setLevel(args.log_level)
 
-    # if args.check:
-    #     YOLOv8Model()
+    if args.check:
+        YOLOv8Model()
 
     app = init_app(
-        # model_class=YOLOv8Model,
+        model_class=YOLOv8Model,
         base_url=args.base_url,
         api_token=args.api_token,
         model_dir=args.model_dir,

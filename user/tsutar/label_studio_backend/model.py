@@ -21,7 +21,7 @@ class YOLOv8Model(LabelStudioMLBase):
         self.from_name, self.to_name, self.value, self.classes = get_single_tag_keys(
             self.parsed_label_config, "RectangleLabels", "Image"
         )
-        self.labels = ["referee", "player"]
+        self.labels = ["player blue", "player white", "referee"]
         self.model = YOLO(model_name)
         self.base_url = base_url
         self.api_token = api_token
@@ -46,6 +46,7 @@ class YOLOv8Model(LabelStudioMLBase):
         i = 0
         for result in results:
             for i, prediction in enumerate(result.boxes):
+                # print(prediction)
                 xyxy = prediction.xyxy[0].tolist()
                 predictions.append(
                     {
@@ -64,8 +65,7 @@ class YOLOv8Model(LabelStudioMLBase):
                             "width": (xyxy[2] - xyxy[0]) / original_width * 100,
                             "height": (xyxy[3] - xyxy[1]) / original_height * 100,
                             "rectanglelabels": [
-                                # self.labels[int(prediction.cls.item())]
-                                "player"
+                                self.labels[int(prediction.cls.item())]
                             ],
                         },
                     }
@@ -80,5 +80,5 @@ class YOLOv8Model(LabelStudioMLBase):
                 # "model_version": self.model_version,
             }
         ]
-        # print("result", result)
+        print("result", result)
         return result

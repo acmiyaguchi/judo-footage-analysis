@@ -1,10 +1,11 @@
+from io import BytesIO
+
+import numpy as np
+import requests
 from label_studio_ml.model import LabelStudioMLBase
 from label_studio_ml.utils import get_single_tag_keys
-import requests
-from ultralytics import YOLO
 from PIL import Image
-from io import BytesIO
-import numpy as np
+from ultralytics import YOLO
 
 
 class YOLOv8Model(LabelStudioMLBase):
