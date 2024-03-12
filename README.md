@@ -177,6 +177,12 @@ python -m judo_footage_analysis.label_studio.yolo_entity_backend.wsgi \
     --model-dir /tmp/model \
     --debug \
     --api-token=...
+
+python -m judo_footage_analysis.label_studio.yolo_trained_entity_backend.wsgi \
+    --model-dir /tmp/model \
+    --model-name /cs-share/pradalier/tmp/judo/yolo_player_detection/2024-02-20-best.pt \
+    --debug \
+    --api-token=...
 ```
 
 This debugging process sucks, so we've added a bit of testing too.
