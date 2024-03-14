@@ -1,22 +1,29 @@
 import os
-import matplotlib.pyplot as plt
-import pandas as pd
-import numpy as np
+
 import cv2
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 import pytesseract
 
 from .combine_jsons import *
-from .timer_task import *
+from .display_on_video import *
 from .is_timer import *
 from .process_json import *
-from .display_on_video import *
+from .timer_task import *
 
 # Set the path to the Tesseract executable
-pytesseract.pytesseract.tesseract_cmd = r'/usr/bin/tesseract'  # TODO: Change this to the Tessaract path on the system
+pytesseract.pytesseract.tesseract_cmd = (
+    r"/usr/bin/tesseract"  # TODO: Change this to the Tessaract path on the system
+)
 
 
 # --------------------- Pre processing ---------------------
-def process_all_frames(folder="/cs-share/pradalier/tmp/judo/frames/", output_folder="json/", output_filename="combined.json"):
+def process_all_frames(
+    folder="/cs-share/pradalier/tmp/judo/frames/",
+    output_folder="json/",
+    output_filename="combined.json",
+):
     # Specify the folder path containing frames
     frames_root_folder = folder
 
@@ -26,8 +33,17 @@ def process_all_frames(folder="/cs-share/pradalier/tmp/judo/frames/", output_fol
     roi_coordinates_timer = (660, 625, 750, 665)
 
     # Get the list of folders containing frames
-    frame_mat_folders = [os.path.join(frames_root_folder, folder) for folder in os.listdir(frames_root_folder) if os.path.isdir(os.path.join(frames_root_folder, folder))]
-    frame_folders = [os.path.join(frame_mat_folder, folder) for frame_mat_folder in frame_mat_folders for folder in os.listdir(frame_mat_folder) if os.path.isdir(os.path.join(frame_mat_folder, folder))]
+    frame_mat_folders = [
+        os.path.join(frames_root_folder, folder)
+        for folder in os.listdir(frames_root_folder)
+        if os.path.isdir(os.path.join(frames_root_folder, folder))
+    ]
+    frame_folders = [
+        os.path.join(frame_mat_folder, folder)
+        for frame_mat_folder in frame_mat_folders
+        for folder in os.listdir(frame_mat_folder)
+        if os.path.isdir(os.path.join(frame_mat_folder, folder))
+    ]
 
     # Extract the timer from the frames
     print("-------------------")
@@ -54,14 +70,22 @@ def process_all_frames(folder="/cs-share/pradalier/tmp/judo/frames/", output_fol
     print("Combining done!")
     print("-------------------")
 
-def process_all_videos(videos_root_folder="/mnt/students/video_judo/", json_folder="json_videos/", output_filename="combined_videos.json"):
 
+def process_all_videos(
+    videos_root_folder="/mnt/students/video_judo/",
+    json_folder="json_videos/",
+    output_filename="combined_videos.json",
+):
     # Specify the region of interest as (x1, y1, x2, y2)
     roi_coordinates_timer = (660, 625, 750, 665)
 
     # Get the list of video paths
 
-    video_folders = [os.path.join(videos_root_folder, video) for video in os.listdir(videos_root_folder) if video.endswith('.mp4')]
+    video_folders = [
+        os.path.join(videos_root_folder, video)
+        for video in os.listdir(videos_root_folder)
+        if video.endswith(".mp4")
+    ]
     print(video_folders)
     print(len(video_folders))
 
@@ -70,7 +94,9 @@ def process_all_videos(videos_root_folder="/mnt/students/video_judo/", json_fold
     print("Extracting timer...")
     print("-------------------")
 
-    parallelize_extraction_timer_video(video_folders, json_folder, roi_coordinates_timer)
+    parallelize_extraction_timer_video(
+        video_folders, json_folder, roi_coordinates_timer
+    )
 
     print("-------------------")
     print("Extraction done!")
@@ -91,15 +117,21 @@ def process_all_videos(videos_root_folder="/mnt/students/video_judo/", json_fold
 # --------------------- Post processing ---------------------
 folder = "json_videos"
 
+
 def process_all_json(folder):
     # For each json in the folder apply process_json
     for filename in os.listdir(folder):
         if filename.endswith(".mp4.json"):
             output_filename = filename.replace(".json", "_filled.json")
             print(f"Processing {filename}")
-            process_json(os.path.join(folder, filename), os.path.join(folder, output_filename), verbose=False)
+            process_json(
+                os.path.join(folder, filename),
+                os.path.join(folder, output_filename),
+                verbose=False,
+            )
             print("Done")
             print()
+
 
 def plot_all_json(folder):
     # For each json in the folder plot the data
@@ -109,6 +141,7 @@ def plot_all_json(folder):
             plot_timer(os.path.join(folder, filename))
             print("Done")
             print()
+
 
 def create_all_videos(folder):
     # For each json in the folder create the video
@@ -124,11 +157,17 @@ def create_all_videos(folder):
             # Get the video name (after the last /)
             video_name = video_path.split("/")[-1]
             json_path = os.path.join(folder, filename)
-            
+
             # Create the video
-            data_on_video(video_path, json_path, output_path=os.path.join(folder, output_filename), N=1000)
+            data_on_video(
+                video_path,
+                json_path,
+                output_path=os.path.join(folder, output_filename),
+                N=1000,
+            )
             print("Done")
             print()
+
 
 def create_all_srt(folder):
     # For each json in the folder create the SRT file
@@ -142,8 +181,10 @@ def create_all_srt(folder):
             # remove df from the memory
             del df
             json_path = os.path.join(folder, filename)
-            
+
             # Create the SRT file
-            data_as_subtitles(video_path, json_path, output_path=os.path.join(folder, output_filename))
+            data_as_subtitles(
+                video_path, json_path, output_path=os.path.join(folder, output_filename)
+            )
             print("Done")
             print()
