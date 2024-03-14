@@ -9,4 +9,5 @@ runs
 wandb
 tmp
 venv/
+.vscode/
 
