@@ -9,4 +9,4 @@ runs
 wandb
 tmp
 venv/
-
+.venv/

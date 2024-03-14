@@ -186,3 +186,10 @@ python -m judo_footage_analysis.label_studio.yolo_trained_entity_backend.wsgi \
 ```
 
 This debugging process sucks, so we've added a bit of testing too.
+
+
+## Annotated video with full frame inference
+
+```bash
+python -m workflow.frame_scene_inference
+```

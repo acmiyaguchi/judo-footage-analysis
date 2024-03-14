@@ -4,11 +4,15 @@ ffmpeg-python
 tqdm
 pandas
 luigi
+imageio
 
 # for active learning loop
 label-studio-ml>=1.0.8
 ultralytics
 python-dotenv
+torchvision==0.16.2
+rq
+dill
 
 # testing
 pytest
