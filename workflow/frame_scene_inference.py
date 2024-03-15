@@ -3,9 +3,10 @@ from argparse import ArgumentParser
 from pathlib import Path
 
 import luigi
-from ultralytics import YOLO
-import pandas as pd
 import matplotlib.pyplot as plt
+import pandas as pd
+from ultralytics import YOLO
+
 from judo_footage_analysis.utils import ensure_parent
 
 
@@ -94,12 +95,12 @@ def parse_args():
     parser.add_argument(
         "--output-root-path",
         type=str,
-        default="/cs-share/pradalier/tmp/judo/fullframe_inference/",
+        default="/cs-share/pradalier/tmp/judo/data/fullframe_inference/",
     )
     parser.add_argument(
         "--checkpoint",
         type=str,
-        default="/cs-share/pradalier/tmp/judo/yolo_segmentation_runs/classify/train10/weights/best.pt",
+        default="/cs-share/pradalier/tmp/judo/models/fullframe_classification/v2/train/weights/best.pt",
     )
     parser.add_argument("--num-workers", type=int, default=8)
 
