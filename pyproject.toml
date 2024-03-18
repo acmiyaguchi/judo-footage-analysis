@@ -15,5 +15,5 @@ dependencies = { file = "requirements.in" }
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["judo_footage_analysis"]
+include = ["judo_footage_analysis", "workflow"]
 namespaces = false

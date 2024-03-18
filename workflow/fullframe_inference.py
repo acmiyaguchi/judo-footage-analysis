@@ -4,6 +4,7 @@ from pathlib import Path
 
 import luigi
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 from ultralytics import YOLO
 
@@ -80,9 +81,28 @@ class PlotClassificationInference(luigi.Task):
         plt.savefig(path)
 
     def run(self):
-        df = pd.read_json(self.input_path, ignore_index=True)
+        df = pd.read_json(self.input_path)
         df = self._preprocess(df)
         self._plot(df, ensure_parent(self.output().path))
+
+
+class Workflow(luigi.Task):
+    input_path = luigi.Parameter()
+    output_path = luigi.Parameter()
+    checkpoint = luigi.Parameter()
+
+    def run(self):
+        # inference plus plots
+        task = SceneClassificationInference(
+            input_path=self.input_path,
+            output_path=self.output_path,
+            checkpoint=self.checkpoint,
+        )
+        yield task
+        yield PlotClassificationInference(
+            input_path=task.output().path,
+            output_path=self.output_path,
+        )
 
 
 def parse_args():
@@ -113,7 +133,7 @@ if __name__ == "__main__":
 
     luigi.build(
         [
-            SceneClassificationInference(
+            Workflow(
                 input_path=p.as_posix(),
                 output_path=(
                     Path(args.output_root_path)
