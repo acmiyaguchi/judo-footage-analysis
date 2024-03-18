@@ -3,9 +3,11 @@ from argparse import ArgumentParser
 from pathlib import Path
 
 import luigi
-from ultralytics import YOLO
-import pandas as pd
 import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from ultralytics import YOLO
+
 from judo_footage_analysis.utils import ensure_parent
 
 
@@ -79,9 +81,28 @@ class PlotClassificationInference(luigi.Task):
         plt.savefig(path)
 
     def run(self):
-        df = pd.read_json(self.input_path, ignore_index=True)
+        df = pd.read_json(self.input_path)
         df = self._preprocess(df)
         self._plot(df, ensure_parent(self.output().path))
+
+
+class Workflow(luigi.Task):
+    input_path = luigi.Parameter()
+    output_path = luigi.Parameter()
+    checkpoint = luigi.Parameter()
+
+    def run(self):
+        # inference plus plots
+        task = SceneClassificationInference(
+            input_path=self.input_path,
+            output_path=self.output_path,
+            checkpoint=self.checkpoint,
+        )
+        yield task
+        yield PlotClassificationInference(
+            input_path=task.output().path,
+            output_path=self.output_path,
+        )
 
 
 def parse_args():
@@ -94,12 +115,12 @@ def parse_args():
     parser.add_argument(
         "--output-root-path",
         type=str,
-        default="/cs-share/pradalier/tmp/judo/fullframe_inference/",
+        default="/cs-share/pradalier/tmp/judo/data/fullframe_inference/",
     )
     parser.add_argument(
         "--checkpoint",
         type=str,
-        default="/cs-share/pradalier/tmp/judo/yolo_segmentation_runs/classify/train10/weights/best.pt",
+        default="/cs-share/pradalier/tmp/judo/models/fullframe_classification/v2/train/weights/best.pt",
     )
     parser.add_argument("--num-workers", type=int, default=8)
 
@@ -112,7 +133,7 @@ if __name__ == "__main__":
 
     luigi.build(
         [
-            SceneClassificationInference(
+            Workflow(
                 input_path=p.as_posix(),
                 output_path=(
                     Path(args.output_root_path)

@@ -186,3 +186,35 @@ python -m judo_footage_analysis.label_studio.yolo_trained_entity_backend.wsgi \
 ```
 
 This debugging process sucks, so we've added a bit of testing too.
+
+## Annotated video with full frame inference
+
+Our trained model is not working correctly against a modern version of torch, so we retrain the model.
+On a gpu instance (shire):
+
+```bash
+yolo classify train \
+    data=/mnt/cs-share/pradalier/tmp/judo/fullframe_classification_dataset \
+    model=yolov8n-cls.pt \
+    verbose=true \
+    patience=20 \
+    project=/mnt/gpu_storage/judo-footage-analysis/fullframe_classification_models/v2
+```
+
+And then copy over the results:
+
+```bash
+rsync -a shire:/mnt/gpu_storage/judo-footage-analysis/fullframe_classification_models/v2/ \
+    /cs-share/pradalier/tmp/judo/models/fullframe_classification/v2
+```
+
+```bash
+python -m workflow.fullframe_inference
+```
+
+This should generate some json files that contain the probability of being part of a particular class.
+We can apply these back to the frames.
+
+```bash
+python -m workflow.fullframe_overlay
+```
