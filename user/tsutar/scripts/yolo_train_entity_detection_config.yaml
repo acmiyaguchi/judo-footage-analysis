@@ -1,6 +1,6 @@
-train: /home/GPU/tsutar/home_gtl/intro_to_res/entity-detection-2024-03-19/train/images # Path to training images
-val: /home/GPU/tsutar/home_gtl/intro_to_res/entity-detection-2024-03-19/val/images # Path to validation images
-test: /home/GPU/tsutar/home_gtl/intro_to_res/entity-detection-2024-03-19/test/images # Path to test images (optional)
+train: /mnt/cs-share/pradalier/tmp/judo/data/annotations/entity-detection-2024-03-19/train/images # Path to training images
+val: /mnt/cs-share/pradalier/tmp/judo/data/annotations/entity-detection-2024-03-19/val/images # Path to validation images
+test: /mnt/cs-share/pradalier/tmp/judo/data/annotations/entity-detection-2024-03-19/test/images # Path to test images (optional)
 
 nc: 3 # Number of classes
 names:
