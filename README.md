@@ -147,10 +147,15 @@ label-studio \
     --data-dir /data/judo-label \
     --port 8081
 
-./scripts/serve_local_files.sh \
+# generate a manifest
+./scripts/generate_folder_manifest.sh \
     /cs-share/pradalier/tmp/judo \
     '*/frames/*.jpg' \
     /cs-share/pradalier/tmp/judo/frame_files.txt
+
+# start up nginx
+./scripts/serve_local_files.sh \
+    /cs-share/pradalier/tmp/judo
 ```
 
 Here's some handy documentation:
