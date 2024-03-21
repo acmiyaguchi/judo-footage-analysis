@@ -30,6 +30,11 @@ def parse_args():
         help="name of the model to use for inference",
     )
     parser.add_argument(
+        "--model-version",
+        default="v8n_v1",
+        help="version of the model to use for inference",
+    )
+    parser.add_argument(
         "--check",
         action="store_true",
         help="Validate model instance before launching server",
@@ -65,6 +70,7 @@ def main():
         api_token=args.api_token,
         model_dir=args.model_dir,
         model_name=args.model_name,
+        model_version=args.model_version,
     )
     app.run(host=args.host, port=args.port, debug=args.debug)
 

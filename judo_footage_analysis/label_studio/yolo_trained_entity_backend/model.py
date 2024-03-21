@@ -14,6 +14,7 @@ class YOLOv8Model(LabelStudioMLBase):
         base_url="http://localhost:8080",
         api_token="",
         model_name="yolov8n.pt",
+        model_version="v8n_v1",
         **kwargs,
     ):
         # Call base class constructor
@@ -22,11 +23,11 @@ class YOLOv8Model(LabelStudioMLBase):
         self.from_name, self.to_name, self.value, self.classes = get_single_tag_keys(
             self.parsed_label_config, "RectangleLabels", "Image"
         )
-        self.labels = ["player blue", "player white", "referee"]
+        self.labels = ["player_blue", "player_white", "referee"]
         self.model = YOLO(model_name)
         self.base_url = base_url
         self.api_token = api_token
-        self.model_version = "v8n_v1"
+        self.model_version = model_version
 
     def predict(self, tasks, **kwargs):
         """This is where inference happens: model returns
@@ -78,7 +79,7 @@ class YOLOv8Model(LabelStudioMLBase):
                 "result": predictions,
                 "score": score / (i + 1),
                 # all predictions will be differentiated by model version
-                # "model_version": self.model_version,
+                "model_version": self.model_version,
             }
         ]
         return result
