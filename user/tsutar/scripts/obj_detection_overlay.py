@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import math
 
 import cv2
@@ -15,11 +14,13 @@ img = cv2.imread(
     "/home/GPU/tsutar/home_gtl/intro_to_res/cs8813-judo-footage-analysis/user/tsutar/frames/frame137.jpg"
 )
 save_path = "/home/GPU/tsutar/home_gtl/intro_to_res/"
-model_path = "/home/GPU/tsutar/home_gtl/intro_to_res/cs8813-judo-footage-analysis/user/tsutar/scripts/runs/detect/train2/weights/best.pt"
+model_path = (
+    "/mnt/cs-share/pradalier/tmp/judo/models/entity_detection/v2/weights/best.pt"
+)
 size = (int(vidcap.get(3)), int(vidcap.get(4)))
 
 out_writer = cv2.VideoWriter(
-    save_path + "/bb_overlay.mp4", cv2.VideoWriter_fourcc(*"MJPG"), 30, size
+    save_path + "/bb_overlay_v2.mp4", cv2.VideoWriter_fourcc(*"MJPG"), 30, size
 )
 
 model = YOLO(model_path)

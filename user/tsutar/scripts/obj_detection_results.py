@@ -24,5 +24,5 @@ df.plot(
     title="Object Detection training results",
     figsize=(10, 4),
 )
-Path(runs_dir + "/detect/plots/").mkdir(parents=True, exist_ok=True)
-plt.savefig(runs_dir + "/detect/plots/results.jpg")
+Path(runs_dir + "/detect/train2/plots/").mkdir(parents=True, exist_ok=True)
+plt.savefig(runs_dir + "/detect/train2/plots/results.jpg")
