@@ -11,6 +11,8 @@ import numpy as np
 import pandas as pd
 from ultralytics import YOLO
 
+err_file = "/home/GPU/tsutar/home_gtl/intro_to_res/judo/error_file"
+
 
 def ensure_parent(path):
     path = Path(path)
@@ -31,7 +33,7 @@ class RefereeExtraction(luigi.Task):
         # img = cv2.imread(self.input_path)
         output_root = ensure_parent(self.output().path).parent
 
-        for p in Path(self.input_path).glob("*"):
+        for p in Path(self.input_path).glob("*/"):
             img = cv2.imread(p.as_posix())
 
             results = model.predict(
@@ -51,14 +53,21 @@ class RefereeExtraction(luigi.Task):
                     x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
                     w, h = x2 - x1, y2 - y1
                     cls = box.cls[0]
-                    # cvzone.cornerRect(img, (x1, y1, w, h), colorR=colors[int(cls)])
-                    start_pt = (x1, y1)
-                    end_pt = (x2, y2)
 
                     if int(cls) == 2:
-                        referee = img[y1 : y1 + h, x1 : x1 + w]
-                        name = f"{p.stem}_{i:02d}.png"
-                        cv2.imwrite((Path(self.output_path) / name).as_posix(), referee)
+                        try:
+                            referee = img[y1 : y1 + h, x1 : x1 + w]
+                            name = f"{p.stem}_{i:02d}.png"
+                            cv2.imwrite(
+                                (Path(self.output_path) / name).as_posix(), referee
+                            )
+                        except TypeError as err:
+                            file = open(err_file, "w")
+                            err_img_type = str(type(img))
+                            err_img_path = str(p)
+                            file.write(err_img_path)
+                            file.write(err_img_type)
+                            file.close()
 
 
 def parse_args():
@@ -71,7 +80,7 @@ def parse_args():
     parser.add_argument(
         "--output-root-path",
         type=str,
-        default="/mnt/cs-share/pradalier/tmp/judo/referee/",
+        default="/home/GPU/tsutar/home_gtl/intro_to_res/judo/referee/",
     )
     parser.add_argument(
         "--checkpoint",
