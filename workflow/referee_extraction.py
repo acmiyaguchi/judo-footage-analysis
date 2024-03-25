@@ -16,50 +16,80 @@ class RefereeExtraction(luigi.Task):
     def output(self):
         return luigi.LocalTarget((Path(self.output_path) / "_SUCCESS").as_posix())
 
-    def process_batch(self, paths, model):
-        imgs = [cv2.imread(p.as_posix()) for p in paths]
+    # def process_batch(self, paths, model):
+    #     imgs = [cv2.imread(p.as_posix()) for p in paths]
 
-        results = model.predict(
-            imgs,
-            save=False,
-            conf=0.2,
-            iou=0.5,
-            verbose=False,
-            stream=True,
-            batch=6,
-            device="cpu",
-        )
+    #     results = model.predict(
+    #         imgs,
+    #         save=False,
+    #         conf=0.2,
+    #         iou=0.5,
+    #         verbose=False,
+    #         stream=True,
+    #         batch=6,
+    #         device="cpu",
+    #     )
 
-        for path, img, r in zip(paths, imgs, results):
-            for i, box in enumerate(r.boxes):
-                x1, y1, x2, y2 = box.xyxy[0]
-                x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
-                w, h = x2 - x1, y2 - y1
-                cls = box.cls[0]
+    #     for path, img, r in zip(paths, imgs, results):
+    #         for i, box in enumerate(r.boxes):
+    #             x1, y1, x2, y2 = box.xyxy[0]
+    #             x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
+    #             w, h = x2 - x1, y2 - y1
+    #             cls = box.cls[0]
 
-                if not int(cls) == 2:
-                    continue
-                referee = img[y1 : y1 + h, x1 : x1 + w]
-                filename = ensure_path(self.output_path) / f"{path.stem}_{i:02d}.png"
-                cv2.imwrite(filename.as_posix(), referee)
+    #             if not int(cls) == 2:
+    #                 continue
+    #             referee = img[y1 : y1 + h, x1 : x1 + w]
+    #             filename = ensure_path(self.output_path) / f"{path.stem}_{i:02d}.png"
+    #             cv2.imwrite(filename.as_posix(), referee)
 
-    def glob_path_batches(self, input_path, pattern="*.jpg", batch_size=10):
-        batch = []
-        for p in Path(input_path).glob(pattern):
-            batch.append(p)
-            if batch == batch_size:
-                yield batch
-                batch = []
-        if batch:
-            yield batch
+    # def glob_path_batches(self, input_path, pattern="*.jpg", batch_size=1):
+    #     batch = []
+    #     for p in Path(input_path).glob(pattern):
+    #         batch.append(p)
+    #         if batch == batch_size:
+    #             yield batch
+    #             batch = []
+    #     if batch:
+    #         yield batch
 
     def run(self):
         model = YOLO(self.checkpoint)
 
-        for i, batch in enumerate(self.glob_path_batches(self.input_path)):
-            if i > 0:
-                break
-            self.process_batch(batch, model)
+        # for i, batch in enumerate(self.glob_path_batches(self.input_path)):
+        #     if i > 0:
+        #         break
+        #     self.process_batch(batch, model)
+
+        for p in Path(self.input_path).glob("*.jpg"):
+            imgs = cv2.imread(p.as_posix())
+
+            results = model.predict(
+                imgs,
+                save=False,
+                conf=0.2,
+                iou=0.5,
+                verbose=False,
+                stream=True,
+                batch=6,
+                device="cpu",
+            )
+
+            for r in results:
+                for i, box in enumerate(r.boxes):
+                    x1, y1, x2, y2 = box.xyxy[0]
+                    x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
+                    w, h = x2 - x1, y2 - y1
+                    cls = box.cls[0]
+
+                    if not int(cls) == 2:
+                        continue
+                    referee = imgs[y1 : y1 + h, x1 : x1 + w]
+                    filename = (
+                        ensure_path(self.output_path)
+                        / f"{Path(self.input_path).stem}_{i:02d}.png"
+                    )
+                    cv2.imwrite(filename.as_posix(), referee)
 
         with self.output().open("w") as f:
             f.write("")
@@ -82,7 +112,7 @@ def parse_args():
         type=str,
         default="/cs-share/pradalier/tmp/judo/models/entity_detection/v2/weights/best.pt",
     )
-    parser.add_argument("--num-workers", type=int, default=1)
+    parser.add_argument("--num-workers", type=int, default=8)
     parser.add_argument("--scheduler-host", type=str, default="localhost")
 
     return parser.parse_args()
@@ -102,7 +132,7 @@ def ensure_parent(path):
 
 if __name__ == "__main__":
     args = parse_args()
-    image_batch_root = sorted(Path(args.input_root_path).glob("*/*"))[:2]
+    image_batch_root = sorted(Path(args.input_root_path).glob("*/*"))
 
     luigi.build(
         [
