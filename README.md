@@ -125,6 +125,16 @@ time python -m workflow.sample_frames \
     --num-workers 12
 ```
 
+### extraction of short videos
+
+```bash
+python -m workflow.truncate_videos \
+    --input-root-path /mnt/students/video_judo \
+    --output-root-path /cs-share/pradalier/tmp/judo/data/clips \
+    --duration 30 \
+    --num-workers 4
+```
+
 ### configuring label studio
 
 Follow the instructions from [label studio](https://labelstud.io/guide/install).
