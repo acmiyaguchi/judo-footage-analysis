@@ -8,7 +8,7 @@ random.seed(42)
 
 # Paths
 
-base_path = "/home/GTL/tsutar/intro_to_res/pose_detetion_dataset"
+base_path = "/cs-share/pradalier/tmp/judo/data/annotations/entity-detection-2024-03-19"
 images_path = os.path.join(base_path, "images")
 labels_path = os.path.join(base_path, "labels")
 
