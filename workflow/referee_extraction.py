@@ -5,7 +5,7 @@ import cv2
 import luigi
 from ultralytics import YOLO
 
-# from judo_footage_analysis.utils import ensure_path
+from judo_footage_analysis.utils import ensure_path
 
 
 class RefereeExtraction(luigi.Task):
@@ -16,80 +16,47 @@ class RefereeExtraction(luigi.Task):
     def output(self):
         return luigi.LocalTarget((Path(self.output_path) / "_SUCCESS").as_posix())
 
-    # def process_batch(self, paths, model):
-    #     imgs = [cv2.imread(p.as_posix()) for p in paths]
+    def process_batch(self, paths, model):
+        imgs = [cv2.imread(p.as_posix()) for p in paths]
 
-    #     results = model.predict(
-    #         imgs,
-    #         save=False,
-    #         conf=0.2,
-    #         iou=0.5,
-    #         verbose=False,
-    #         stream=True,
-    #         batch=6,
-    #         device="cpu",
-    #     )
+        results = model.predict(
+            imgs,
+            save=False,
+            conf=0.2,
+            iou=0.5,
+            verbose=True,
+            stream=False,
+            device="cpu",
+        )
 
-    #     for path, img, r in zip(paths, imgs, results):
-    #         for i, box in enumerate(r.boxes):
-    #             x1, y1, x2, y2 = box.xyxy[0]
-    #             x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
-    #             w, h = x2 - x1, y2 - y1
-    #             cls = box.cls[0]
+        for path, img, r in zip(paths, imgs, results):
+            for i, box in enumerate(r.boxes):
+                x1, y1, x2, y2 = box.xyxy[0]
+                x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
+                w, h = x2 - x1, y2 - y1
+                cls = box.cls[0]
 
-    #             if not int(cls) == 2:
-    #                 continue
-    #             referee = img[y1 : y1 + h, x1 : x1 + w]
-    #             filename = ensure_path(self.output_path) / f"{path.stem}_{i:02d}.png"
-    #             cv2.imwrite(filename.as_posix(), referee)
+                if not int(cls) == 2:
+                    continue
+                referee = img[y1 : y1 + h, x1 : x1 + w]
+                filename = ensure_path(self.output_path) / f"{path.stem}_{i:02d}.png"
+                cv2.imwrite(filename.as_posix(), referee)
 
-    # def glob_path_batches(self, input_path, pattern="*.jpg", batch_size=1):
-    #     batch = []
-    #     for p in Path(input_path).glob(pattern):
-    #         batch.append(p)
-    #         if batch == batch_size:
-    #             yield batch
-    #             batch = []
-    #     if batch:
-    #         yield batch
+    def glob_path_batches(self, input_path, pattern="*.jpg", batch_size=10):
+        batch = []
+        for p in sorted(Path(input_path).glob(pattern)):
+            batch.append(p)
+            if len(batch) == batch_size:
+                yield batch
+                batch = []
+        if batch:
+            yield batch
 
     def run(self):
         model = YOLO(self.checkpoint)
 
-        # for i, batch in enumerate(self.glob_path_batches(self.input_path)):
-        #     if i > 0:
-        #         break
-        #     self.process_batch(batch, model)
-
-        for p in Path(self.input_path).glob("*.jpg"):
-            imgs = cv2.imread(p.as_posix())
-
-            results = model.predict(
-                imgs,
-                save=False,
-                conf=0.2,
-                iou=0.5,
-                verbose=False,
-                stream=True,
-                batch=6,
-                device="cpu",
-            )
-
-            for r in results:
-                for i, box in enumerate(r.boxes):
-                    x1, y1, x2, y2 = box.xyxy[0]
-                    x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
-                    w, h = x2 - x1, y2 - y1
-                    cls = box.cls[0]
-
-                    if not int(cls) == 2:
-                        continue
-                    referee = imgs[y1 : y1 + h, x1 : x1 + w]
-                    filename = (
-                        ensure_path(self.output_path)
-                        / f"{Path(self.input_path).stem}_{i:02d}.png"
-                    )
-                    cv2.imwrite(filename.as_posix(), referee)
+        for i, batch in enumerate(self.glob_path_batches(self.input_path)):
+            self.process_batch(batch, model)
 
         with self.output().open("w") as f:
             f.write("")
@@ -105,7 +72,7 @@ def parse_args():
     parser.add_argument(
         "--output-root-path",
         type=str,
-        default="/cs-share/pradalier/tmp/judo/data/referee/",
+        default="/cs-share/pradalier/tmp/judo/data/referee_v2/",
     )
     parser.add_argument(
         "--checkpoint",
@@ -116,18 +83,6 @@ def parse_args():
     parser.add_argument("--scheduler-host", type=str, default="localhost")
 
     return parser.parse_args()
-
-
-def ensure_path(path):
-    path = Path(path)
-    path.mkdir(parents=True, exist_ok=True)
-    return path
-
-
-def ensure_parent(path):
-    path = Path(path)
-    ensure_path(path.parent)
-    return path
 
 
 if __name__ == "__main__":
