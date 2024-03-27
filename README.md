@@ -135,6 +135,15 @@ python -m workflow.truncate_videos \
     --num-workers 4
 ```
 
+Then generate a manifest:
+
+```bash
+./scripts/generate_folder_manifest.sh \
+    /cs-share/pradalier/tmp/judo \
+    '*/clips/*.mp4' \
+    /cs-share/pradalier/tmp/judo/data/clips/files.txt
+```
+
 ### configuring label studio
 
 Follow the instructions from [label studio](https://labelstud.io/guide/install).
@@ -164,8 +173,7 @@ label-studio \
     /cs-share/pradalier/tmp/judo/frame_files.txt
 
 # start up nginx
-./scripts/serve_local_files.sh \
-    /cs-share/pradalier/tmp/judo
+./scripts/serve_local_files.sh
 ```
 
 Here's some handy documentation:
