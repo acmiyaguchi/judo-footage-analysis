@@ -23,6 +23,7 @@ class TruncateVideos(luigi.Task):
     # ffmpeg parameters
     offset = luigi.IntParameter(default=60 * 60)
     duration = luigi.IntParameter(default=30)
+    num_truncations = luigi.IntParameter(default=5)
 
     def output(self):
         """Check for a success semaphore."""
@@ -34,7 +35,7 @@ class TruncateVideos(luigi.Task):
         probe = ffmpeg.probe(self.input_path)
         duration = int(float(probe["format"]["duration"]))
 
-        for i in range(3):
+        for i in range(self.num_truncations):
             output_file = ensure_path(self.output_path) / f"{i:04d}.mp4"
             (
                 ffmpeg.input(
@@ -53,7 +54,7 @@ def parse_args():
     parser.add_argument("--input-root-path", type=str, required=True)
     parser.add_argument("--output-root-path", type=str, required=True)
     parser.add_argument("--output-prefix", type=str, default="mat")
-    parser.add_argument("--duration", type=int, default=60, help="Duration in seconds")
+    parser.add_argument("--duration", type=int, default=30, help="Duration in seconds")
     parser.add_argument("--num-workers", type=int, default=4)
     return parser.parse_args()
 
