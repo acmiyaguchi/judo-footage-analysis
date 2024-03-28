@@ -125,6 +125,25 @@ time python -m workflow.sample_frames \
     --num-workers 12
 ```
 
+### extraction of short videos
+
+```bash
+python -m workflow.truncate_videos \
+    --input-root-path /mnt/students/video_judo \
+    --output-root-path /cs-share/pradalier/tmp/judo/data/clips \
+    --duration 30 \
+    --num-workers 4
+```
+
+Then generate a manifest:
+
+```bash
+./scripts/generate_folder_manifest.sh \
+    /cs-share/pradalier/tmp/judo \
+    '*/clips/*.mp4' \
+    /cs-share/pradalier/tmp/judo/data/clips/files.txt
+```
+
 ### configuring label studio
 
 Follow the instructions from [label studio](https://labelstud.io/guide/install).
@@ -154,8 +173,7 @@ label-studio \
     /cs-share/pradalier/tmp/judo/frame_files.txt
 
 # start up nginx
-./scripts/serve_local_files.sh \
-    /cs-share/pradalier/tmp/judo
+./scripts/serve_local_files.sh
 ```
 
 Here's some handy documentation:
@@ -177,17 +195,18 @@ ssh -L 8080:localhost:8080 gtlpc129
 
 ## pre-annotation and active labeling
 
+Create a `.env` file from the `.env.template`.
+In particular, set the label-studio api token.
+
 ```bash
 python -m judo_footage_analysis.label_studio.yolo_entity_backend.wsgi \
     --model-dir /tmp/model \
-    --debug \
-    --api-token=...
+    --debug
 
 python -m judo_footage_analysis.label_studio.yolo_trained_entity_backend.wsgi \
     --model-dir /tmp/model \
-    --model-name /cs-share/pradalier/tmp/judo/yolo_player_detection/2024-02-20-best.pt \
-    --debug \
-    --api-token=...
+    --model-name /cs-share/pradalier/tmp/judo/models/entity_detection/v2/weights/best.pt \
+    --debug
 ```
 
 This debugging process sucks, so we've added a bit of testing too.
