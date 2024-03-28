@@ -195,17 +195,18 @@ ssh -L 8080:localhost:8080 gtlpc129
 
 ## pre-annotation and active labeling
 
+Create a `.env` file from the `.env.template`.
+In particular, set the label-studio api token.
+
 ```bash
 python -m judo_footage_analysis.label_studio.yolo_entity_backend.wsgi \
     --model-dir /tmp/model \
-    --debug \
-    --api-token=...
+    --debug
 
 python -m judo_footage_analysis.label_studio.yolo_trained_entity_backend.wsgi \
     --model-dir /tmp/model \
-    --model-name /cs-share/pradalier/tmp/judo/yolo_player_detection/2024-02-20-best.pt \
-    --debug \
-    --api-token=...
+    --model-name /cs-share/pradalier/tmp/judo/models/entity_detection/v2/weights/best.pt \
+    --debug
 ```
 
 This debugging process sucks, so we've added a bit of testing too.
