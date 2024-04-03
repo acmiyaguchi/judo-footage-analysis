@@ -1,6 +1,0 @@
-[submodule "vendor/detectron2"]
-	path = vendor/detectron2
-	url = https://github.com/acmiyaguchi/detectron2.git
-[submodule "vendor/label-studio-yolov8-backend"]
-	path = vendor/label-studio-yolov8-backend
-	url = https://github.com/acmiyaguchi/label-studio-yolov8-backend.git
