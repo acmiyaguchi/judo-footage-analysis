@@ -6,11 +6,12 @@ a directory structure that should be relatively easy to retrieve for our
 labeling tasks.
 """
 
-from pathlib import Path
 from argparse import ArgumentParser
 from dataclasses import dataclass
-import luigi
+from pathlib import Path
+
 import ffmpeg
+import luigi
 
 
 class FrameSampler(luigi.Task):
@@ -28,7 +29,7 @@ class FrameSampler(luigi.Task):
         self.output_path = Path(self.output_root_path) / self.output_prefix
 
     def output(self):
-        """We check for the existence of the output directory, and a success sempahore."""
+        """We check for the existence of the output directory, and a success semaphore."""
         return [
             luigi.LocalTarget(self.output_path),
             luigi.LocalTarget(self.output_path / "_SUCCESS"),
@@ -41,7 +42,7 @@ class FrameSampler(luigi.Task):
             str(self.output_path / "%04d.jpg"), r=self.sample_rate, start_number=0
         ).run(capture_stdout=True, capture_stderr=True)
 
-        # write a success sempahore
+        # write a success semaphore
         with self.output()[1].open("w") as f:
             f.write("")
 

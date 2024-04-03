@@ -109,7 +109,7 @@ We extract frames from all the downloaded videos to train a model for full frame
 luigid
 
 # run the extraction process as a test
-python -m workflow.sample_frames \
+python -m judo_footage_analysis.workflow.sample_frames \
     --input-root-path /mnt/students/video_judo \
     --output-root-path /cs-share/pradalier/tmp/judo/frames \
     --duration 20 \
@@ -117,7 +117,7 @@ python -m workflow.sample_frames \
     --num-workers 4
 
 # run the extraction process for real
-time python -m workflow.sample_frames \
+time python -m judo_footage_analysis.workflow.sample_frames \
     --input-root-path /mnt/students/video_judo \
     --output-root-path /cs-share/pradalier/tmp/judo/frames \
     --duration 3600 \
@@ -128,7 +128,7 @@ time python -m workflow.sample_frames \
 ### extraction of short videos
 
 ```bash
-python -m workflow.truncate_videos \
+python -m judo_footage_analysis.workflow.truncate_videos \
     --input-root-path /mnt/students/video_judo \
     --output-root-path /cs-share/pradalier/tmp/judo/data/clips \
     --duration 30 \
@@ -233,12 +233,12 @@ rsync -a shire:/mnt/gpu_storage/judo-footage-analysis/fullframe_classification_m
 ```
 
 ```bash
-python -m workflow.fullframe_inference
+python -m judo_footage_analysis.workflow.fullframe_inference
 ```
 
 This should generate some json files that contain the probability of being part of a particular class.
 We can apply these back to the frames.
 
 ```bash
-python -m workflow.fullframe_overlay
+python -m judo_footage_analysis.workflow.fullframe_overlay
 ```
