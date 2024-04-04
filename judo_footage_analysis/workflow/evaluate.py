@@ -297,6 +297,29 @@ class FitLogisticModel(FitLogisticModelBase):
         )
 
 
+class FitLogisticModelTruncateFeature(FitLogisticModelBase):
+    truncate_size = luigi.IntParameter(default=8)
+
+    def _pipeline(self):
+        return Pipeline(
+            stages=[
+                VectorAssembler(
+                    inputCols=self.features,
+                    outputCol="features",
+                ),
+                VectorSlicer(
+                    inputCol="features",
+                    outputCol="truncated_features",
+                    indices=list(range(self.truncate_size)),
+                ),
+                StandardScaler(
+                    inputCol="truncated_features", outputCol="scaled_features"
+                ),
+                LogisticRegression(featuresCol="scaled_features", labelCol=self.label),
+            ]
+        )
+
+
 class EvaluationWorkflow(luigi.Task):
     input_path = luigi.Parameter()
     output_path = luigi.Parameter()
@@ -340,6 +363,20 @@ class EvaluationWorkflow(luigi.Task):
                 "emb_vanilla_yolov8n",
                 "emb_vanilla_yolov8n_dct_d8",
             ]
+            for label in ["is_match", "is_active", "is_standing"]
+        ]
+
+        # let's try different cutoffs for DCT
+        yield [
+            FitLogisticModelTruncateFeature(
+                input_path=f"{self.output_path}/data/evaluation_embeddings/v2",
+                output_path=f"{self.output_path}/models/evaluation_embeddings_logistic_binary/v2/{col}_d{k}/{label}",
+                features=[col],
+                label=label,
+                truncate_size=k,
+            )
+            for col in ["emb_entity_detection_v2_dct"]
+            for k in [16, 32, 64]
             for label in ["is_match", "is_active", "is_standing"]
         ]
 
