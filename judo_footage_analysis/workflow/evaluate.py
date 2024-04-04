@@ -3,8 +3,10 @@
 from pathlib import Path
 
 import luigi
+from pyspark.ml import Pipeline, PipelineModel
 from pyspark.sql import functions as F
 
+from judo_footage_analysis.transforms import WrappedYOLOv8DetectEmbedding
 from judo_footage_analysis.utils import spark_resource
 
 from .sample_frames import FrameSampler
@@ -55,12 +57,63 @@ class ImageParquet(luigi.Task):
             self._consolidate(spark, self.tmp_path, self.output_path)
 
 
+class GenerateEmbeddings(luigi.Task):
+    input_path = luigi.Parameter()
+    output_path = luigi.Parameter()
+    feature_name = luigi.Parameter(default="yolov8n_emb")
+    primary_key = luigi.Parameter(default="path")
+    checkpoint = luigi.Parameter(default="yolov8n.pt")
+
+    def output(self):
+        return luigi.LocalTarget(f"{self.output_path}/data/_SUCCESS")
+
+    def run(self):
+        with spark_resource(cores=4, memory="4g") as spark:
+            df = spark.read.parquet(self.input_path)
+            df.printSchema()
+            df.show()
+
+            pipeline = Pipeline(
+                stages=[
+                    WrappedYOLOv8DetectEmbedding(
+                        input_col="content",
+                        output_col=self.feature_name,
+                        checkpoint=self.checkpoint,
+                    )
+                ]
+            )
+            # save the pipeline
+            pipeline.fit(df).write().overwrite().save(f"{self.output_path}/pipeline")
+            model = PipelineModel.load(f"{self.output_path}/pipeline")
+
+            # run inference
+            model.transform(df).select(
+                self.primary_key, self.feature_name
+            ).write.parquet(f"{self.output_path}/data", mode="overwrite")
+            transformed = spark.read.parquet(f"{self.output_path}/data")
+            transformed.printSchema()
+            transformed.show()
+
+
 class EvaluationWorkflow(luigi.Task):
     input_path = luigi.Parameter()
     output_path = luigi.Parameter()
 
     def run(self):
-        pass
+        yield [
+            GenerateEmbeddings(
+                input_path=f"{self.input_path}/data/evaluation_frames/v1",
+                output_path=f"{self.output_path}/data/evaluation_embeddings_entity_detection_v2/v1",
+                checkpoint=f"{self.input_path}/models/entity_detection/v2/weights/best.pt",
+                feature_name="entity_detection_v2_emb",
+            ),
+            GenerateEmbeddings(
+                input_path=f"{self.input_path}/data/evaluation_frames/v1",
+                output_path=f"{self.output_path}/data/evaluation_embeddings_vanilla_yolov8n_emb/v1",
+                checkpoint=f"yolov8n.pt",
+                feature_name="vanilla_yolov8n_emb",
+            ),
+        ]
 
 
 if __name__ == "__main__":
@@ -78,7 +131,12 @@ if __name__ == "__main__":
         log_level="INFO",
     )
 
-    # luigi.build(
-    #     [EvaluationWorkflow()],
-    #     workers=1,
-    # )
+    luigi.build(
+        [
+            EvaluationWorkflow(
+                input_path=f"{data_root}",
+                output_path=f"{data_root}",
+            )
+        ],
+        workers=1,
+    )
