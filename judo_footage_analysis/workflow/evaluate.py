@@ -95,6 +95,50 @@ class GenerateEmbeddings(luigi.Task):
             transformed.show()
 
 
+class ConsolidateEmbeddings(luigi.Task):
+    label_path = luigi.Parameter()
+    input_paths = luigi.ListParameter()
+    feature_names = luigi.ListParameter()
+    output_path = luigi.Parameter()
+
+    def output(self):
+        return luigi.LocalTarget(f"{self.output_path}/_SUCCESS")
+
+    def run(self):
+        with spark_resource() as spark:
+
+            @F.udf(returnType="struct<file: string, time: long>")
+            def extract_key_udf(path: str) -> dict:
+                parts = Path(path).parts
+                filename = "/".join(parts[:-1]) + ".mp4"
+                time = int(Path(path).stem)
+                return {"file": filename, "time": time}
+
+            df = spark.read.json(self.label_path, multiLine=True)
+            df.printSchema()
+            df.show(truncate=100)
+            for name, feature_df in zip(
+                self.feature_names,
+                [
+                    spark.read.parquet(f"{input_path}/data")
+                    for input_path in self.input_paths
+                ],
+            ):
+                tmp = feature_df.withColumn("key", extract_key_udf("path")).select(
+                    F.col("key.file").alias("file"),
+                    F.col("key.time").alias("time"),
+                    name,
+                )
+                df = df.join(tmp, on=["file", "time"])
+            df.printSchema()
+            df.write.parquet(self.output_path, mode="overwrite")
+
+            # show the result
+            df = spark.read.parquet(self.output_path, truncate=100)
+            df.show()
+            df.describe().show()
+
+
 class EvaluationWorkflow(luigi.Task):
     input_path = luigi.Parameter()
     output_path = luigi.Parameter()
@@ -114,6 +158,15 @@ class EvaluationWorkflow(luigi.Task):
                 feature_name="vanilla_yolov8n_emb",
             ),
         ]
+        yield ConsolidateEmbeddings(
+            label_path=f"{self.input_path}/data/combat_phase/discrete_v2/labels.json",
+            input_paths=[
+                f"{self.output_path}/data/evaluation_embeddings_entity_detection_v2/v1",
+                f"{self.output_path}/data/evaluation_embeddings_vanilla_yolov8n_emb/v1",
+            ],
+            feature_names=["entity_detection_v2_emb", "vanilla_yolov8n_emb"],
+            output_path=f"{self.output_path}/data/evaluation_embeddings/v1",
+        )
 
 
 if __name__ == "__main__":
