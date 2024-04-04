@@ -149,7 +149,7 @@ class ConsolidateEmbeddings(luigi.Task):
             df.describe().show()
 
 
-class FitLogisticModel(luigi.Task):
+class FitLogisticModelBase(luigi.Task):
     input_path = luigi.Parameter()
     output_path = luigi.Parameter()
 
@@ -190,16 +190,7 @@ class FitLogisticModel(luigi.Task):
         return train, test
 
     def _pipeline(self):
-        return Pipeline(
-            stages=[
-                VectorAssembler(
-                    inputCols=self.features,
-                    outputCol="features",
-                ),
-                StandardScaler(inputCol="features", outputCol="scaled_features"),
-                LogisticRegression(featuresCol="scaled_features", labelCol=self.label),
-            ]
-        )
+        raise NotImplementedError()
 
     def _evaluator(self):
         return MulticlassClassificationEvaluator(
@@ -268,6 +259,20 @@ class FitLogisticModel(luigi.Task):
             f.write("")
 
 
+class FitLogisticModel(FitLogisticModelBase):
+    def _pipeline(self):
+        return Pipeline(
+            stages=[
+                VectorAssembler(
+                    inputCols=self.features,
+                    outputCol="features",
+                ),
+                StandardScaler(inputCol="features", outputCol="scaled_features"),
+                LogisticRegression(featuresCol="scaled_features", labelCol=self.label),
+            ]
+        )
+
+
 class EvaluationWorkflow(luigi.Task):
     input_path = luigi.Parameter()
     output_path = luigi.Parameter()
@@ -297,6 +302,7 @@ class EvaluationWorkflow(luigi.Task):
             output_path=f"{self.output_path}/data/evaluation_embeddings/v1",
         )
 
+        # now let's fit the simplest possible model
         yield [
             FitLogisticModel(
                 input_path=f"{self.output_path}/data/evaluation_embeddings/v1",
