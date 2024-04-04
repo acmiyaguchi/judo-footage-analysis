@@ -5,6 +5,9 @@ tqdm
 pandas
 luigi
 imageio
+pyspark
+scikit-learn
+pyarrow
 
 # for active learning loop
 label-studio-ml>=1.0.8

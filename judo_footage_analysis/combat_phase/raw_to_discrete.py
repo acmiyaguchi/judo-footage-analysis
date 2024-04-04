@@ -1,18 +1,14 @@
 import json
-import os
 from argparse import ArgumentParser
-from pathlib import Path
 
-import cv2
-import ffmpeg
 import luigi
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import seaborn as sns
+
+from judo_footage_analysis.utils import ensure_parent
 
 
-class CombatPhaseRawToDescritised(luigi.Task):
+class CombatPhaseRawToDiscrete(luigi.Task):
     input_json_path = luigi.Parameter()
     output_json_path = luigi.Parameter()
     interval_duration = luigi.IntParameter(default=5)
@@ -22,13 +18,9 @@ class CombatPhaseRawToDescritised(luigi.Task):
 
     def run(self):
         df = pd.read_json(self.input_json_path)
-        file = df["file"]
-        annotations = df["annotations"]
 
-        descritised_annotations = []
-        for file, annotation in zip(file, annotations):
-            descritised_annotation = []
-
+        discrete_annotations = []
+        for file, annotation in zip(df.file, df.annotations):
             # Get the min start time and max end time
             min_start_time = min([a["start"] for a in annotation])
             max_end_time = max([a["end"] for a in annotation])
@@ -64,26 +56,28 @@ class CombatPhaseRawToDescritised(luigi.Task):
                         ):
                             is_standing = True
 
-                descritised_annotation.append(
+                discrete_annotations.append(
                     {
                         "file": file,
                         "time": recording_point,
-                        "is_match": is_match,
-                        "is_active": is_active,
-                        "is_standing": is_standing,
+                        "is_match": int(is_match),
+                        "is_active": int(is_active),
+                        "is_standing": int(is_standing),
                     }
                 )
 
-            descritised_annotations.extend(descritised_annotation)
-
-        # Log the list of descritised annotations
-        print(descritised_annotations)
-
-        # Convert the list of descritised annotations to a DataFrame
-        descritised_annotations = pd.DataFrame(descritised_annotations)
-
-        # Save the descritised annotations
-        descritised_annotations.to_json(self.output_json_path)
+        df = pd.DataFrame(discrete_annotations)
+        print(df.head())
+        # https://stackoverflow.com/questions/60029873/pandas-to-json-redundant-backslashes
+        # https://stackoverflow.com/questions/71275766/backward-slash-when-converting-dataframe-to-json-file
+        ensure_parent(self.output_json_path).write_text(
+            json.dumps(
+                df.to_dict(
+                    orient="records",
+                ),
+                indent=2,
+            )
+        )
 
 
 class Workflow(luigi.Task):
@@ -92,7 +86,7 @@ class Workflow(luigi.Task):
     interval_duration = luigi.IntParameter(default=5)
 
     def requires(self):
-        return CombatPhaseRawToDescritised(
+        return CombatPhaseRawToDiscrete(
             input_json_path=self.input_json_path,
             output_json_path=self.output_json_path,
             interval_duration=self.interval_duration,
@@ -107,13 +101,13 @@ def parse_args():
     parser.add_argument(
         "--input-json-path",
         type=str,
-        default="/cs-share/pradalier/tmp/judo/data/combat_phase/filtered_annotations.json",
+        default="/cs-share/pradalier/tmp/judo/data/combat_phase/filtered_annotations_v2.json",
         help="Path to the input JSON file.",
     )
     parser.add_argument(
         "--output-json-path",
         type=str,
-        default="/cs-share/pradalier/tmp/judo/data/combat_phase/descritised_annotations.json",
+        default="/cs-share/pradalier/tmp/judo/data/combat_phase/discrete_annotations_v2.json",
         help="Path to save the descritised annotations.",
     )
     parser.add_argument(

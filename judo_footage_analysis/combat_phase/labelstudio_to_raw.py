@@ -1,15 +1,11 @@
 import json
 import os
 from argparse import ArgumentParser
-from pathlib import Path
 
-import cv2
-import ffmpeg
 import luigi
-import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
-import seaborn as sns
+
+from judo_footage_analysis.utils import ensure_parent
 
 
 class CombatPhaseLabelStudioToRaw(luigi.Task):
@@ -36,7 +32,8 @@ class CombatPhaseLabelStudioToRaw(luigi.Task):
             results = annotation["result"]
             url = data["video_url"]
 
-            file = os.path.join(self.data_path, "/".join(url.split("/")[-3:]))
+            # only keep the relative path to the data directory
+            file = os.path.join(*url.split("/")[-4:])
 
             extracted_annotation["file"] = file
             extracted_annotation["annotations"] = []
@@ -45,14 +42,6 @@ class CombatPhaseLabelStudioToRaw(luigi.Task):
                 value["labels"] = value["labels"][0]
                 extracted_annotation["annotations"].append(value)
             extracted_annotations.append(extracted_annotation)
-
-        # # Save the extracted annotations
-        # with open("/cs-share/pradalier/tmp/judo/data/combat_phase/extracted_annotations.json", "w") as outfile:
-        #     json.dump(extracted_annotations, outfile)
-
-        # # Load the extracted annotations
-        # with open("/cs-share/pradalier/tmp/judo/data/combat_phase/extracted_annotations.json", "r") as infile:
-        #     extracted_annotations = json.load(infile)
 
         # Filter the annotations
         filtered_annotations = []
@@ -203,8 +192,8 @@ class CombatPhaseLabelStudioToRaw(luigi.Task):
                 )
 
         # Save the filtered annotations
-        with open(self.output_json_path, "w") as outfile:
-            json.dump(filtered_annotations, outfile)
+        with open(ensure_parent(self.output_json_path), "w") as outfile:
+            json.dump(filtered_annotations, outfile, indent=2)
 
 
 class Workflow(luigi.Task):
