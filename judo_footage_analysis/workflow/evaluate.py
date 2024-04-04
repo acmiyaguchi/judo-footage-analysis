@@ -11,8 +11,8 @@ from pyspark.ml.evaluation import (
     MulticlassClassificationEvaluator,
     MultilabelClassificationEvaluator,
 )
-from pyspark.ml.feature import StandardScaler, VectorAssembler
-from pyspark.ml.functions import array_to_vector
+from pyspark.ml.feature import DCT, StandardScaler, VectorAssembler, VectorSlicer
+from pyspark.ml.functions import array_to_vector, vector_to_array
 from pyspark.ml.tuning import CrossValidator, CrossValidatorModel, ParamGridBuilder
 from pyspark.sql import functions as F
 
@@ -70,8 +70,6 @@ class ImageParquet(luigi.Task):
 class GenerateEmbeddings(luigi.Task):
     input_path = luigi.Parameter()
     output_path = luigi.Parameter()
-    feature_name = luigi.Parameter(default="yolov8n_emb")
-    primary_key = luigi.Parameter(default="path")
     checkpoint = luigi.Parameter(default="yolov8n.pt")
 
     def output(self):
@@ -87,9 +85,15 @@ class GenerateEmbeddings(luigi.Task):
                 stages=[
                     WrappedYOLOv8DetectEmbedding(
                         input_col="content",
-                        output_col=self.feature_name,
+                        output_col="embedding",
                         checkpoint=self.checkpoint,
-                    )
+                    ),
+                    DCT(inputCol="embedding", outputCol="embedding_dct"),
+                    VectorSlicer(
+                        inputCol="embedding_dct",
+                        outputCol="embedding_dct_d8",
+                        indices=list(range(8)),
+                    ),
                 ]
             )
             # save the pipeline
@@ -97,9 +101,9 @@ class GenerateEmbeddings(luigi.Task):
             model = PipelineModel.load(f"{self.output_path}/pipeline")
 
             # run inference
-            model.transform(df).select(
-                self.primary_key, self.feature_name
-            ).write.parquet(f"{self.output_path}/data", mode="overwrite")
+            model.transform(df).drop("content").write.parquet(
+                f"{self.output_path}/data", mode="overwrite"
+            )
             transformed = spark.read.parquet(f"{self.output_path}/data")
             transformed.printSchema()
             transformed.show()
@@ -137,7 +141,11 @@ class ConsolidateEmbeddings(luigi.Task):
                 tmp = feature_df.withColumn("key", extract_key_udf("path")).select(
                     F.col("key.file").alias("file"),
                     F.col("key.time").alias("time"),
-                    name,
+                    *[
+                        F.col(col).alias(col.replace("embedding", name))
+                        for col in feature_df.columns
+                        if col.startswith("embedding")
+                    ],
                 )
                 df = df.join(tmp, on=["file", "time"])
             df.printSchema()
@@ -247,10 +255,26 @@ class FitLogisticModelBase(luigi.Task):
                         "test_time": eval_timer.elapsed,
                         "test_metric": f1,
                         "label": self.label,
+                        "train_size": train.count(),
+                        "train_positive": train.where(F.col(self.label) > 0).count(),
+                        "test_size": test.count(),
+                        "test_positive": test.where(F.col(self.label) > 0).count(),
                     }
                 ],
-                schema="train_time double, avg_metrics array<double>, std_metrics array<double>, metric_name string",
-            )
+                schema="""
+                    train_time double,
+                    avg_metrics array<double>,
+                    std_metrics array<double>,
+                    metric_name string,
+                    test_time double,
+                    test_metric double,
+                    label string,
+                    train_size long,
+                    train_positive long,
+                    test_size long,
+                    test_positive long
+                """,
+            ).repartition(1)
             perf.write.json(f"{self.output_path}/perf", mode="overwrite")
             perf.show()
 
@@ -281,36 +305,41 @@ class EvaluationWorkflow(luigi.Task):
         yield [
             GenerateEmbeddings(
                 input_path=f"{self.input_path}/data/evaluation_frames/v1",
-                output_path=f"{self.output_path}/data/evaluation_embeddings_entity_detection_v2/v1",
+                output_path=f"{self.output_path}/data/evaluation_embeddings_entity_detection_v2/v2",
                 checkpoint=f"{self.input_path}/models/entity_detection/v2/weights/best.pt",
-                feature_name="entity_detection_v2_emb",
             ),
             GenerateEmbeddings(
                 input_path=f"{self.input_path}/data/evaluation_frames/v1",
-                output_path=f"{self.output_path}/data/evaluation_embeddings_vanilla_yolov8n_emb/v1",
+                output_path=f"{self.output_path}/data/evaluation_embeddings_vanilla_yolov8n_emb/v2",
                 checkpoint=f"yolov8n.pt",
-                feature_name="vanilla_yolov8n_emb",
             ),
         ]
         yield ConsolidateEmbeddings(
             label_path=f"{self.input_path}/data/combat_phase/discrete_v2/labels.json",
             input_paths=[
-                f"{self.output_path}/data/evaluation_embeddings_entity_detection_v2/v1",
-                f"{self.output_path}/data/evaluation_embeddings_vanilla_yolov8n_emb/v1",
+                f"{self.output_path}/data/evaluation_embeddings_entity_detection_v2/v2",
+                f"{self.output_path}/data/evaluation_embeddings_vanilla_yolov8n_emb/v2",
             ],
-            feature_names=["entity_detection_v2_emb", "vanilla_yolov8n_emb"],
-            output_path=f"{self.output_path}/data/evaluation_embeddings/v1",
+            feature_names=["emb_entity_detection_v2", "emb_vanilla_yolov8n"],
+            output_path=f"{self.output_path}/data/evaluation_embeddings/v2",
         )
 
-        # now let's fit the simplest possible model
+        # now let's fit the basic model where we just use the embedding
+        # v1 - initial implementation
+        # v2 - include dct column to simplify the general pipeline
         yield [
             FitLogisticModel(
-                input_path=f"{self.output_path}/data/evaluation_embeddings/v1",
-                output_path=f"{self.output_path}/models/evaluation_embeddings_logistic_binary/v1/{col}/{label}",
+                input_path=f"{self.output_path}/data/evaluation_embeddings/v2",
+                output_path=f"{self.output_path}/models/evaluation_embeddings_logistic_binary/v2/{col}/{label}",
                 features=[col],
                 label=label,
             )
-            for col in ["entity_detection_v2_emb", "vanilla_yolov8n_emb"]
+            for col in [
+                "emb_entity_detection_v2",
+                "emb_entity_detection_v2_dct_d8",
+                "emb_vanilla_yolov8n",
+                "emb_vanilla_yolov8n_dct_d8",
+            ]
             for label in ["is_match", "is_active", "is_standing"]
         ]
 

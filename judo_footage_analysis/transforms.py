@@ -3,7 +3,7 @@ import io
 import numpy as np
 from imageio.v3 import imread
 from pyspark.ml import Transformer
-from pyspark.ml.functions import predict_batch_udf
+from pyspark.ml.functions import array_to_vector, predict_batch_udf
 from pyspark.ml.param.shared import HasInputCol, HasOutputCol
 from pyspark.ml.util import DefaultParamsReadable, DefaultParamsWritable
 from pyspark.sql import DataFrame
@@ -70,9 +70,11 @@ class WrappedYOLOv8DetectEmbedding(
     def _transform(self, df: DataFrame):
         return df.withColumn(
             self.getOutputCol(),
-            predict_batch_udf(
-                make_predict_fn=self._make_predict_fn,
-                return_type=ArrayType(FloatType()),
-                batch_size=self.batch_size,
-            )(self.getInputCol()),
+            array_to_vector(
+                predict_batch_udf(
+                    make_predict_fn=self._make_predict_fn,
+                    return_type=ArrayType(FloatType()),
+                    batch_size=self.batch_size,
+                )(self.getInputCol())
+            ),
         )
