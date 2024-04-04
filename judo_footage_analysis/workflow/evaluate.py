@@ -3,7 +3,17 @@
 from pathlib import Path
 
 import luigi
+import numpy as np
+from contexttimer import Timer
 from pyspark.ml import Pipeline, PipelineModel
+from pyspark.ml.classification import LogisticRegression
+from pyspark.ml.evaluation import (
+    MulticlassClassificationEvaluator,
+    MultilabelClassificationEvaluator,
+)
+from pyspark.ml.feature import StandardScaler, VectorAssembler
+from pyspark.ml.functions import array_to_vector
+from pyspark.ml.tuning import CrossValidator, CrossValidatorModel, ParamGridBuilder
 from pyspark.sql import functions as F
 
 from judo_footage_analysis.transforms import WrappedYOLOv8DetectEmbedding
@@ -139,6 +149,125 @@ class ConsolidateEmbeddings(luigi.Task):
             df.describe().show()
 
 
+class FitLogisticModel(luigi.Task):
+    input_path = luigi.Parameter()
+    output_path = luigi.Parameter()
+
+    features = luigi.ListParameter(default=["features"])
+    label = luigi.Parameter(default="label")
+
+    num_folds = luigi.IntParameter(default=3)
+    max_iter = luigi.ListParameter(default=[100])
+    reg_param = luigi.ListParameter(default=[0.0])
+    elastic_net_param = luigi.ListParameter(default=[0.0])
+    seed = luigi.IntParameter(default=42)
+
+    def output(self):
+        return luigi.LocalTarget(f"{self.output_path}/_SUCCESS")
+
+    def _transform(self, df):
+        for col in self.features:
+            # check if array
+            if df.schema[col].dataType.typeName() == "array":
+                df = df.withColumn(col, array_to_vector(col).alias(col))
+        return df
+
+    def _load(self, spark):
+        return self._transform(spark.read.parquet(self.input_path))
+
+    def _train_test_split(self, df, train_ratio=0.8):
+        sample_id = df.withColumn("sample_id", F.crc32(F.col("file")) % 100)
+        train = (
+            sample_id.filter(F.col("sample_id") < train_ratio * 100)
+            .repartition(16)
+            .cache()
+        )
+        test = (
+            sample_id.filter(F.col("sample_id") >= train_ratio * 100)
+            .repartition(16)
+            .cache()
+        )
+        return train, test
+
+    def _pipeline(self):
+        return Pipeline(
+            stages=[
+                VectorAssembler(
+                    inputCols=self.features,
+                    outputCol="features",
+                ),
+                StandardScaler(inputCol="features", outputCol="scaled_features"),
+                LogisticRegression(featuresCol="scaled_features", labelCol=self.label),
+            ]
+        )
+
+    def _evaluator(self):
+        return MulticlassClassificationEvaluator(
+            predictionCol="prediction",
+            labelCol=self.label,
+            metricName="f1",
+        )
+
+    def _param_grid(self, lr):
+        return (
+            ParamGridBuilder()
+            .addGrid(lr.maxIter, self.max_iter)
+            .addGrid(lr.regParam, self.reg_param)
+            .addGrid(lr.elasticNetParam, self.elastic_net_param)
+            .build()
+        )
+
+    def run(self):
+        with spark_resource() as spark:
+            train, test = self._train_test_split(self._load(spark))
+
+            # write the model to disk
+            pipeline = self._pipeline()
+            lr = [
+                stage
+                for stage in pipeline.getStages()
+                if isinstance(stage, LogisticRegression)
+            ][-1]
+            cv = CrossValidator(
+                estimator=pipeline,
+                estimatorParamMaps=self._param_grid(lr),
+                evaluator=self._evaluator(),
+                numFolds=self.num_folds,
+            )
+
+            with Timer() as train_timer:
+                cv.fit(train).write().overwrite().save(f"{self.output_path}/model")
+
+            model = CrossValidatorModel.load(f"{self.output_path}/model")
+
+            # evaluate against the test set
+            with Timer() as eval_timer:
+                predictions = model.transform(test)
+                f1 = self._evaluator().evaluate(predictions)
+
+            # write the results to disk
+            perf = spark.createDataFrame(
+                [
+                    {
+                        "train_time": train_timer.elapsed,
+                        "avg_metrics": np.array(model.avgMetrics).tolist(),
+                        "std_metrics": np.array(model.avgMetrics).tolist(),
+                        "metric_name": model.getEvaluator().getMetricName(),
+                        "test_time": eval_timer.elapsed,
+                        "test_metric": f1,
+                        "label": self.label,
+                    }
+                ],
+                schema="train_time double, avg_metrics array<double>, std_metrics array<double>, metric_name string",
+            )
+            perf.write.json(f"{self.output_path}/perf", mode="overwrite")
+            perf.show()
+
+        # write the output
+        with self.output().open("w") as f:
+            f.write("")
+
+
 class EvaluationWorkflow(luigi.Task):
     input_path = luigi.Parameter()
     output_path = luigi.Parameter()
@@ -167,6 +296,17 @@ class EvaluationWorkflow(luigi.Task):
             feature_names=["entity_detection_v2_emb", "vanilla_yolov8n_emb"],
             output_path=f"{self.output_path}/data/evaluation_embeddings/v1",
         )
+
+        yield [
+            FitLogisticModel(
+                input_path=f"{self.output_path}/data/evaluation_embeddings/v1",
+                output_path=f"{self.output_path}/models/evaluation_embeddings_logistic_binary/v1/{col}/{label}",
+                features=[col],
+                label=label,
+            )
+            for col in ["entity_detection_v2_emb", "vanilla_yolov8n_emb"]
+            for label in ["is_match", "is_active", "is_standing"]
+        ]
 
 
 if __name__ == "__main__":
