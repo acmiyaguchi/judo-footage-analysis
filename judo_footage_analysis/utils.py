@@ -16,19 +16,22 @@ def get_spark(
     cores=os.cpu_count(),
     memory=f"{int(os.cpu_count()*DEFAULT_MEMORY_TO_CORE_RATIO)}g",
     local_dir="/tmp/spark",
-    app_name="judo",
+    app_name=None,
     **kwargs,
 ):
     """Get a spark session for a single driver."""
     builder = (
-        SparkSession.builder.config("spark.driver.memory", memory)
+        SparkSession.builder.config("spark.driver.cores", cores)
+        .config("spark.driver.memory", memory)
         .config("spark.sql.execution.arrow.pyspark.enabled", "true")
         .config("spark.driver.maxResultSize", "4g")
         .config("spark.local.dir", f"{local_dir}/{int(time.time())}")
     )
     for k, v in kwargs.items():
         builder = builder.config(k, v)
-    return builder.appName(app_name).master(f"local[{cores}]").getOrCreate()
+    if not app_name:
+        app_name = f"spark-{int(time.time())}"
+    return builder.appName(app_name).getOrCreate()
 
 
 @contextmanager
