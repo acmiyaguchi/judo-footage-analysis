@@ -7,17 +7,14 @@ import numpy as np
 from contexttimer import Timer
 from pyspark.ml import Pipeline, PipelineModel
 from pyspark.ml.classification import LogisticRegression
-from pyspark.ml.evaluation import (
-    MulticlassClassificationEvaluator,
-    MultilabelClassificationEvaluator,
-)
+from pyspark.ml.evaluation import MulticlassClassificationEvaluator
 from pyspark.ml.feature import DCT, StandardScaler, VectorAssembler, VectorSlicer
-from pyspark.ml.functions import array_to_vector, vector_to_array
+from pyspark.ml.functions import array_to_vector
 from pyspark.ml.tuning import CrossValidator, CrossValidatorModel, ParamGridBuilder
 from pyspark.sql import Window
 from pyspark.sql import functions as F
 
-from judo_footage_analysis.transforms import WrappedYOLOv8DetectEmbedding
+from judo_footage_analysis.transforms import DCTN, WrappedYOLOv8DetectEmbedding
 from judo_footage_analysis.utils import spark_resource
 
 from .sample_frames import FrameSampler
@@ -72,6 +69,7 @@ class GenerateEmbeddings(luigi.Task):
     input_path = luigi.Parameter()
     output_path = luigi.Parameter()
     checkpoint = luigi.Parameter(default="yolov8n.pt")
+    output_tensor_shapes = luigi.ListParameter(default=[80, 12, 20])
 
     def output(self):
         return luigi.LocalTarget(f"{self.output_path}/data/_SUCCESS")
@@ -88,6 +86,7 @@ class GenerateEmbeddings(luigi.Task):
                         input_col="content",
                         output_col="embedding",
                         checkpoint=self.checkpoint,
+                        output_tensor_shapes=self.output_tensor_shapes,
                     ),
                     DCT(inputCol="embedding", outputCol="embedding_dct"),
                     VectorSlicer(
@@ -299,6 +298,29 @@ class FitLogisticModel(FitLogisticModelBase):
         )
 
 
+class FitLogisticModelDCTN(FitLogisticModelBase):
+    filter_size = luigi.ListParameter(default=[3, 3, 5])
+    input_tensor_shapes = luigi.ListParameter(default=[3, 12, 20])
+
+    def _pipeline(self):
+        return Pipeline(
+            stages=[
+                VectorAssembler(
+                    inputCols=self.features,
+                    outputCol="features",
+                ),
+                DCTN(
+                    input_col="features",
+                    output_col="dct_features",
+                    filter_size=self.filter_size,
+                    input_tensor_shapes=self.input_tensor_shapes,
+                ),
+                StandardScaler(inputCol="dct_features", outputCol="scaled_features"),
+                LogisticRegression(featuresCol="scaled_features", labelCol=self.label),
+            ]
+        )
+
+
 class FitLogisticModelTruncateFeature(FitLogisticModelBase):
     truncate_size = luigi.IntParameter(default=8)
 
@@ -398,26 +420,31 @@ class EvaluationWorkflow(luigi.Task):
     output_path = luigi.Parameter()
 
     def run(self):
+        # embedding needs to get the actual tensor shape from the model so we can do a n-dct
+        embedding_version = "v3"
+        modeling_version = "v4"
         yield [
             GenerateEmbeddings(
                 input_path=f"{self.input_path}/data/evaluation_frames/v1",
-                output_path=f"{self.output_path}/data/evaluation_embeddings_entity_detection_v2/v2",
+                output_path=f"{self.output_path}/data/evaluation_embeddings_entity_detection_v2/{embedding_version}",
                 checkpoint=f"{self.input_path}/models/entity_detection/v2/weights/best.pt",
+                output_tensor_shapes=[3, 12, 20],
             ),
             GenerateEmbeddings(
                 input_path=f"{self.input_path}/data/evaluation_frames/v1",
-                output_path=f"{self.output_path}/data/evaluation_embeddings_vanilla_yolov8n_emb/v2",
+                output_path=f"{self.output_path}/data/evaluation_embeddings_vanilla_yolov8n_emb/{embedding_version}",
                 checkpoint=f"yolov8n.pt",
+                output_tensor_shapes=[80, 12, 20],
             ),
         ]
         yield ConsolidateEmbeddings(
             label_path=f"{self.input_path}/data/combat_phase/discrete_v2/labels.json",
             input_paths=[
-                f"{self.output_path}/data/evaluation_embeddings_entity_detection_v2/v2",
-                f"{self.output_path}/data/evaluation_embeddings_vanilla_yolov8n_emb/v2",
+                f"{self.output_path}/data/evaluation_embeddings_entity_detection_v2/{embedding_version}",
+                f"{self.output_path}/data/evaluation_embeddings_vanilla_yolov8n_emb/{embedding_version}",
             ],
             feature_names=["emb_entity_detection_v2", "emb_vanilla_yolov8n"],
-            output_path=f"{self.output_path}/data/evaluation_embeddings/v2",
+            output_path=f"{self.output_path}/data/evaluation_embeddings/{embedding_version}",
         )
 
         # now let's fit the basic model where we just use the embedding
@@ -427,8 +454,8 @@ class EvaluationWorkflow(luigi.Task):
         yield [
             *[
                 FitLogisticModel(
-                    input_path=f"{self.output_path}/data/evaluation_embeddings/v2",
-                    output_path=f"{self.output_path}/models/evaluation_embeddings_logistic_binary/v3/{col}/{label}",
+                    input_path=f"{self.output_path}/data/evaluation_embeddings/{embedding_version}",
+                    output_path=f"{self.output_path}/models/evaluation_embeddings_logistic_binary/{modeling_version}/{col}/{label}",
                     features=[col],
                     label=label,
                 )
@@ -440,8 +467,8 @@ class EvaluationWorkflow(luigi.Task):
             ],
             *[
                 FitLogisticModelTruncateFeature(
-                    input_path=f"{self.output_path}/data/evaluation_embeddings/v2",
-                    output_path=f"{self.output_path}/models/evaluation_embeddings_logistic_binary/v3/{col}_d{d}/{label}",
+                    input_path=f"{self.output_path}/data/evaluation_embeddings/{embedding_version}",
+                    output_path=f"{self.output_path}/models/evaluation_embeddings_logistic_binary/{modeling_version}/{col}_d{d}/{label}",
                     features=[col],
                     label=label,
                     truncate_size=d,
@@ -450,11 +477,31 @@ class EvaluationWorkflow(luigi.Task):
                 for d in [8, 16, 32, 64]
                 for label in ["is_match", "is_active", "is_standing"]
             ],
+            # let's try DCTN
+            *[
+                FitLogisticModelDCTN(
+                    input_path=f"{self.output_path}/data/evaluation_embeddings/{embedding_version}",
+                    output_path=f"{self.output_path}/models/evaluation_embeddings_logistic_binary/{modeling_version}/{col}_dctn/{label}",
+                    features=[col],
+                    label=label,
+                    filter_size=filter_size,
+                    input_tensor_shapes=input_tensor_shapes,
+                )
+                for col, input_tensor_shapes, filter_size in [
+                    ("emb_entity_detection_v2", [3, 12, 20], [3, 3, 5]),
+                    ("emb_vanilla_yolov8n", [80, 12, 20], [3, 3, 5]),
+                ]
+                for label in [
+                    "is_match",
+                    "is_active",
+                    "is_standing",
+                ]
+            ],
             # let's try lagged features
             *[
                 FitLaggedLogisticModel(
-                    input_path=f"{self.output_path}/data/evaluation_embeddings/v2",
-                    output_path=f"{self.output_path}/models/evaluation_embeddings_logistic_binary/v3/{col}_lag{k}/{label}",
+                    input_path=f"{self.output_path}/data/evaluation_embeddings/{embedding_version}",
+                    output_path=f"{self.output_path}/models/evaluation_embeddings_logistic_binary/{modeling_version}/{col}_lag{k}/{label}",
                     features=[col],
                     label=label,
                     num_lag=k,
@@ -469,8 +516,8 @@ class EvaluationWorkflow(luigi.Task):
             # and then lagged truncated features
             *[
                 FitLaggedLogisticModelTruncateFeature(
-                    input_path=f"{self.output_path}/data/evaluation_embeddings/v2",
-                    output_path=f"{self.output_path}/models/evaluation_embeddings_logistic_binary/v3/{col}_d{d}_lag{k}/{label}",
+                    input_path=f"{self.output_path}/data/evaluation_embeddings/{embedding_version}",
+                    output_path=f"{self.output_path}/models/evaluation_embeddings_logistic_binary/{modeling_version}/{col}_d{d}_lag{k}/{label}",
                     features=[col],
                     label=label,
                     num_lag=k,
