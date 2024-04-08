@@ -42,6 +42,7 @@
   "type": "module",
   "dependencies": {
     "@sveltejs/adapter-static": "^3.0.1",
-    "mdsvex": "^0.11.0"
+    "mdsvex": "^0.11.0",
+    "svelte-youtube-embed": "^0.2.3"
   }
 }
