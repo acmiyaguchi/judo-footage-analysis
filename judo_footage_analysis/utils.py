@@ -31,7 +31,7 @@ def get_spark(
         builder = builder.config(k, v)
     if not app_name:
         app_name = f"spark-{int(time.time())}"
-    return builder.appName(app_name).getOrCreate()
+    return builder.appName(app_name).master(f"local[{cores}]").getOrCreate()
 
 
 @contextmanager
