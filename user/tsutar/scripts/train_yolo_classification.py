@@ -8,8 +8,9 @@ model = YOLO("yolov8n-cls.pt")  # load a pretrained model (recommended for train
 
 # Train the model
 results = model.train(
-    data="/home/GPU/tsutar/home_gtl/intro_to_res/judo_yolov5_dataset/",
+    data="/home/GTL/tsutar/intro_to_res/referee_classification_dataset/",
     epochs=100,
     imgsz=640,
-    device=0,
+    device="cpu",
+    patience=10,
 )
