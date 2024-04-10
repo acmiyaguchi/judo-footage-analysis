@@ -6,43 +6,51 @@ a directory structure that should be relatively easy to retrieve for our
 labeling tasks.
 """
 
-from pathlib import Path
 from argparse import ArgumentParser
 from dataclasses import dataclass
-import luigi
+from pathlib import Path
+
 import ffmpeg
+import luigi
+
+from judo_footage_analysis.utils import ensure_path
 
 
 class FrameSampler(luigi.Task):
     input_path = luigi.Parameter()
     output_root_path = luigi.Parameter()
-    output_prefix = luigi.Parameter()
+    output_prefix = luigi.OptionalStrParameter(default=None)
 
     # ffmpeg parameters
     offset = luigi.IntParameter(default=0)
-    duration = luigi.IntParameter(default=60)
     sample_rate = luigi.IntParameter(default=1)
+    duration = luigi.OptionalIntParameter(default=None)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.output_path = Path(self.output_root_path) / self.output_prefix
+        self.output_path = Path(self.output_root_path)
+        if self.output_prefix:
+            self.output_path /= self.output_prefix
 
     def output(self):
-        """We check for the existence of the output directory, and a success sempahore."""
-        return [
-            luigi.LocalTarget(self.output_path),
-            luigi.LocalTarget(self.output_path / "_SUCCESS"),
-        ]
+        """We check for the success semaphore."""
+        return luigi.LocalTarget(self.output_path / "_SUCCESS")
 
     def run(self):
         """Dump frames from the input video to the output directory, prefixed by modulo of the frame number."""
-        self.output_path.mkdir(parents=True, exist_ok=True)
-        ffmpeg.input(self.input_path, ss=self.offset, t=self.duration).output(
-            str(self.output_path / "%04d.jpg"), r=self.sample_rate, start_number=0
+        source = ffmpeg.input(self.input_path, ss=self.offset)
+
+        if self.duration is not None:
+            source = source.trim(duration=self.duration)
+
+        source.output(
+            str(ensure_path(self.output_path) / "%04d.jpg"),
+            r=self.sample_rate,
+            start_number=0,
         ).run(capture_stdout=True, capture_stderr=True)
 
-        # write a success sempahore
-        with self.output()[1].open("w") as f:
+        # write a success semaphore
+        with self.output().open("w") as f:
             f.write("")
 
 
