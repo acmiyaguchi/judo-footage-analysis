@@ -14,7 +14,7 @@ DEFAULT_MEMORY_TO_CORE_RATIO = 0.75
 
 def get_spark(
     cores=os.cpu_count(),
-    memory=f"{int(os.cpu_count()*DEFAULT_MEMORY_TO_CORE_RATIO)}g",
+    memory=f"4g",
     local_dir="/tmp/spark",
     app_name=None,
     **kwargs,
