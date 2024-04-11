@@ -421,15 +421,18 @@ class EvaluationWorkflow(luigi.Task):
 
     def run(self):
         # embedding needs to get the actual tensor shape from the model so we can do a n-dct
-        embedding_version = "v3"
+        embedding_version = "v4"
         modeling_version = "v4"
         yield [
-            GenerateEmbeddings(
-                input_path=f"{self.input_path}/data/evaluation_frames/v1",
-                output_path=f"{self.output_path}/data/evaluation_embeddings_entity_detection_v2/{embedding_version}",
-                checkpoint=f"{self.input_path}/models/entity_detection/v2/weights/best.pt",
-                output_tensor_shapes=[3, 12, 20],
-            ),
+            *[
+                GenerateEmbeddings(
+                    input_path=f"{self.input_path}/data/evaluation_frames/v1",
+                    output_path=f"{self.output_path}/data/evaluation_embeddings_entity_detection_{version}/{embedding_version}",
+                    checkpoint=f"{self.input_path}/models/entity_detection/{version}/weights/best.pt",
+                    output_tensor_shapes=[3, 12, 20],
+                )
+                for version in ["v1", "v2", "v3"]
+            ],
             GenerateEmbeddings(
                 input_path=f"{self.input_path}/data/evaluation_frames/v1",
                 output_path=f"{self.output_path}/data/evaluation_embeddings_vanilla_yolov8n_emb/{embedding_version}",
@@ -440,10 +443,18 @@ class EvaluationWorkflow(luigi.Task):
         yield ConsolidateEmbeddings(
             label_path=f"{self.input_path}/data/combat_phase/discrete_v2/labels.json",
             input_paths=[
-                f"{self.output_path}/data/evaluation_embeddings_entity_detection_v2/{embedding_version}",
+                *[
+                    f"{self.output_path}/data/evaluation_embeddings_entity_detection_{version}/{embedding_version}"
+                    for version in ["v1", "v2", "v3"]
+                ],
                 f"{self.output_path}/data/evaluation_embeddings_vanilla_yolov8n_emb/{embedding_version}",
             ],
-            feature_names=["emb_entity_detection_v2", "emb_vanilla_yolov8n"],
+            feature_names=[
+                "emb_entity_detection_v1",
+                "emb_entity_detection_v2",
+                "emb_entity_detection_v3",
+                "emb_vanilla_yolov8n",
+            ],
             output_path=f"{self.output_path}/data/evaluation_embeddings/{embedding_version}",
         )
 
@@ -460,7 +471,9 @@ class EvaluationWorkflow(luigi.Task):
                     label=label,
                 )
                 for col in [
+                    "emb_entity_detection_v1",
                     "emb_entity_detection_v2",
+                    "emb_entity_detection_v3",
                     "emb_vanilla_yolov8n",
                 ]
                 for label in ["is_match", "is_active", "is_standing"]
@@ -473,7 +486,10 @@ class EvaluationWorkflow(luigi.Task):
                     label=label,
                     truncate_size=d,
                 )
-                for col in ["emb_entity_detection_v2_dct"]
+                for col in [
+                    "emb_entity_detection_v2_dct",
+                    "emb_entity_detection_v3_dct",
+                ]
                 for d in [8, 16, 32, 64]
                 for label in ["is_match", "is_active", "is_standing"]
             ],
@@ -489,6 +505,7 @@ class EvaluationWorkflow(luigi.Task):
                 )
                 for col, input_tensor_shapes, filter_size in [
                     ("emb_entity_detection_v2", [3, 12, 20], [3, 3, 5]),
+                    ("emb_entity_detection_v3", [3, 12, 20], [3, 3, 5]),
                     ("emb_vanilla_yolov8n", [80, 12, 20], [3, 3, 5]),
                 ]
                 for label in [
@@ -509,6 +526,7 @@ class EvaluationWorkflow(luigi.Task):
                 for k in [1]
                 for col in [
                     "emb_entity_detection_v2",
+                    "emb_entity_detection_v3",
                     # "emb_vanilla_yolov8n",
                 ]
                 for label in ["is_match", "is_active", "is_standing"]
@@ -525,7 +543,10 @@ class EvaluationWorkflow(luigi.Task):
                 )
                 for k in [1, 2, 3, 5]
                 for d in [16, 32]
-                for col in ["emb_entity_detection_v2_dct"]
+                for col in [
+                    "emb_entity_detection_v2_dct",
+                    "emb_entity_detection_v3_dct",
+                ]
                 for label in ["is_match", "is_active", "is_standing"]
             ],
         ]
