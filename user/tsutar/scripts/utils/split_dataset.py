@@ -8,13 +8,13 @@ random.seed(42)
 
 # Paths
 
-base_path = "/cs-share/pradalier/tmp/judo/data/annotations/entity-detection-2024-03-19"
+base_path = "/home/GTL/tsutar/intro_to_res/entity-detection-datasets/v2/"
 images_path = os.path.join(base_path, "images")
 labels_path = os.path.join(base_path, "labels")
 
 # Split Ratios
 
-train_ratio = 0.70
+train_ratio = 0.7
 val_ratio = 0.15
 test_ratio = 0.15
 

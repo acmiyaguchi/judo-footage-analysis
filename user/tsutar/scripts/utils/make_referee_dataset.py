@@ -3,15 +3,17 @@ import shutil
 
 # Define your dataset directory and class mapping
 dataset_dir = "/cs-share/pradalier/tmp/judo/data/referee_v2_sorted/classes/"
+output_dir = "/cs-share/pradalier/tmp/judo/data/referee_v2_sorted/dataset/"
 class_map = {
-    "penalty": 0,
+    "match_stop": 0,
     "point": 1,
     "half_point": 2,
+    "other": 3,
 }  # Update with your classes and corresponding indices
 
 # Create directories for images and labels
-images_dir = os.path.join(dataset_dir, "images")
-labels_dir = os.path.join(dataset_dir, "labels")
+images_dir = os.path.join(output_dir, "images")
+labels_dir = os.path.join(output_dir, "labels")
 os.makedirs(images_dir, exist_ok=True)
 os.makedirs(labels_dir, exist_ok=True)
 
@@ -36,7 +38,7 @@ for class_name in class_map:
             create_label_file(filename, class_map[class_name])
 
 # Write class mapping to file
-class_map_file = os.path.join(dataset_dir, "class_map.txt")
+class_map_file = os.path.join(output_dir, "class_map.txt")
 with open(class_map_file, "w") as f:
     for class_name, class_index in class_map.items():
         f.write(f"{class_name}\n")

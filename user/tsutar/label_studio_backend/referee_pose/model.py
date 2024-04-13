@@ -14,20 +14,22 @@ class YOLOv8Model(LabelStudioMLBase):
         base_url="http://localhost:8080",
         api_token="",
         model_name="yolov8n.pt",
-        model_version="v8n_v1",
+        model_version="pose_v1",
+        model_dir="/tmp/model/",
         **kwargs,
     ):
         # Call base class constructor
         super(YOLOv8Model, self).__init__(**kwargs)
 
         self.from_name, self.to_name, self.value, self.classes = get_single_tag_keys(
-            self.parsed_label_config, "RectangleLabels", "Image"
+            self.parsed_label_config, "Choices", "Image"
         )
-        self.labels = ["point", "half_point", "penalty", "match_stop", "something_else"]
+        self.labels = ["half_point", "match_stop", "other", "point"]
         self.model = YOLO(model_name)
         self.base_url = base_url
         self.api_token = api_token
         self.model_version = model_version
+        self.model_dir = model_dir
 
     def predict(self, tasks, **kwargs):
         """This is where inference happens: model returns
@@ -43,43 +45,31 @@ class YOLOv8Model(LabelStudioMLBase):
             BytesIO(requests.get(task["data"]["image"], headers=header).content)
         )
         original_width, original_height = image.size
-        results = self.model.predict(image)
+        results = self.model.predict(image, device="cpu")
 
         i = 0
         for result in results:
-            for i, prediction in enumerate(result.boxes):
-                # print(prediction)
-                xyxy = prediction.xyxy[0].tolist()
-                predictions.append(
-                    {
-                        "id": str(i),
-                        "from_name": self.from_name,
-                        "to_name": self.to_name,
-                        "type": "rectanglelabels",
-                        "score": prediction.conf.item(),
-                        "original_width": original_width,
-                        "original_height": original_height,
-                        "image_rotation": 0,
-                        "value": {
-                            "rotation": 0,
-                            "x": xyxy[0] / original_width * 100,
-                            "y": xyxy[1] / original_height * 100,
-                            "width": (xyxy[2] - xyxy[0]) / original_width * 100,
-                            "height": (xyxy[3] - xyxy[1]) / original_height * 100,
-                            "rectanglelabels": [
-                                self.labels[int(prediction.cls.item())]
-                            ],
-                        },
-                    }
-                )
-                score += prediction.conf.item()
+            predictions.append(
+                {
+                    "id": str(i),
+                    "from_name": self.from_name,
+                    "to_name": self.to_name,
+                    "type": "choices",
+                    "score": float(result.probs.top1conf.numpy()),
+                    "value": {
+                        "choices": [self.labels[result.probs.top1]],
+                    },
+                }
+            )
+
+            score += result.probs.top1conf.numpy()
 
         result = [
             {
                 "result": predictions,
                 "score": score / (i + 1),
-                # all predictions will be differentiated by model version
-                "model_version": self.model_version,
+                "model version": self.model_version,
             }
         ]
+
         return result
