@@ -44,7 +44,7 @@ def main():
     retrain_root = data_root / "referee_v2_sorted" / "referee_retrain"
     reference_root = data_root / "referee_v2"
     annotation_path = (
-        data_root / "annotations" / "entity-detection-at-2024-04-05-12-52-6eba090e.json"
+        data_root / "annotations" / "project-2-at-2024-04-12-20-17-8b63f47c.json"
     )
 
     df = pd.read_json(annotation_path, orient="records")
@@ -57,13 +57,13 @@ def main():
     # now print out the list of images
     collected = collect_paths(retrain_root, reference_root)
     normalized = normalize_path(collected, reference_root)
-    with (retrain_root / "original_path.txt").open("w") as f:
+    with (retrain_root / "original_path_2.txt").open("w") as f:
         for path in normalized:
             f.write(f"{path}\n")
 
     filter_df = subset[subset["image"].isin(normalized)]
     print(filter_df)
-    filter_df.to_csv(retrain_root / "annotation_to_retrain.csv")
+    filter_df.to_csv(retrain_root / "annotation_to_retrain_2.csv")
 
 
 if __name__ == "__main__":

@@ -12,7 +12,8 @@ class YOLOv8Model(LabelStudioMLBase):
         self,
         base_url="http://localhost:8080",
         api_token="",
-        model_name="/home/GTL/tsutar/intro_to_res/cs8813-judo-footage-analysis/user/tsutar/scripts/runs/detect/train2/weights/best.pt",
+        model_name="yolov8m.pt",
+        model_version="",
         **kwargs,
     ):
         # Call base class constructor
@@ -21,11 +22,11 @@ class YOLOv8Model(LabelStudioMLBase):
         self.from_name, self.to_name, self.value, self.classes = get_single_tag_keys(
             self.parsed_label_config, "RectangleLabels", "Image"
         )
-        self.labels = ["player blue", "player white", "referee"]
+        self.labels = ["player_blue", "player_white", "referee"]
         self.model = YOLO(model_name)
         self.base_url = base_url
         self.api_token = api_token
-        self.model_version = "v8n_v1"
+        self.model_version = model_version
 
     def predict(self, tasks, **kwargs):
         """This is where inference happens: model returns
@@ -41,7 +42,7 @@ class YOLOv8Model(LabelStudioMLBase):
             BytesIO(requests.get(task["data"]["image"], headers=header).content)
         )
         original_width, original_height = image.size
-        results = self.model.predict(image)
+        results = self.model.predict(image, device="cpu")
 
         i = 0
         for result in results:
@@ -77,7 +78,7 @@ class YOLOv8Model(LabelStudioMLBase):
                 "result": predictions,
                 "score": score / (i + 1),
                 # all predictions will be differentiated by model version
-                # "model_version": self.model_version,
+                "model_version": self.model_version,
             }
         ]
         print("result", result)

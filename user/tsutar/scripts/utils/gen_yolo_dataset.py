@@ -53,19 +53,6 @@ def organize_dataset(dataset, output_dir):
 
 
 def organize_split(dataset, output_dir):
-    # image_dir = os.path.join(output_dir, 'images')
-    # os.makedirs(image_dir, exist_ok=True)
-    # label_dir = os.path.join(output_dir, 'labels')
-    # os.makedirs(label_dir, exist_ok=True)
-
-    # for i, (image_path, labels) in enumerate(tqdm(dataset)):
-    #     image_name = f"{i}.jpg"
-    #     download_image(image_path, image_dir)
-
-    #     label_file_path = os.path.join(label_dir, f"{i}.txt")
-    #     with open(label_file_path, 'w') as f:
-    #         f.write(labels + '\n')
-
     for image_path, label in tqdm(dataset):
         label_dir = os.path.join(output_dir, label)
         os.makedirs(label_dir, exist_ok=True)
@@ -73,13 +60,11 @@ def organize_split(dataset, output_dir):
 
 
 # Path to Label Studio JSON file
-json_file = "label_studio_data.json"
+json_file = "/home/GTL/tsutar/intro_to_res/referee.json"
 
 # Output directory for the YOLOv5 dataset
-output_dir = "/home/GTL/tsutar/intro_to_res/judo_yolov5_dataset"
+output_dir = "/home/GTL/tsutar/intro_to_res/referee_dataset_v2"
 
-# for image_url, _ in dataset:
-#     download_image(image_url, output_dir)
 # Parse Label Studio JSON file
 dataset = parse_label_studio_json(json_file)
 

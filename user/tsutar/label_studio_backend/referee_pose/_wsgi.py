@@ -31,7 +31,7 @@ def parse_args():
     )
     parser.add_argument(
         "--model-version",
-        default="v8n_v1",
+        default="pose_v1",
         help="version of the model to use for inference",
     )
     parser.add_argument(

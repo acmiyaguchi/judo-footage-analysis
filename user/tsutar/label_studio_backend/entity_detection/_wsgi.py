@@ -41,6 +41,17 @@ def parse_args():
         default=os.environ.get("LABEL_STUDIO_API_TOKEN"),
         help="API token for the API",
     )
+    parser.add_argument(
+        "--model-name",
+        type=str,
+        default="yolov8m.pt",
+        help="filepath to model weight",
+    )
+    parser.add_argument(
+        "--model-version",
+        default="ed_v2",
+        help="version of the model to use for inference",
+    )
     return parser.parse_args()
 
 
@@ -60,6 +71,8 @@ def main():
         base_url=args.base_url,
         api_token=args.api_token,
         model_dir=args.model_dir,
+        model_name=args.model_name,
+        model_version=args.model_version,
     )
     app.run(host=args.host, port=args.port, debug=args.debug)
 
